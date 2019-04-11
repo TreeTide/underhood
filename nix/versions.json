@@ -1,0 +1,16 @@
+{
+  "nixpkgs": {
+    "owner": "NixOS",
+    "repo": "nixpkgs-channels",
+    "branch": "nixos-unstable",
+    "rev": "b75eab88bde1b13cbe83d25b477d83eaf811e0cf",
+    "sha256": "00bzwm3qyqqz0h4k6jm8xgnbwyhv128p1zrskykzchfkdqi6lmw9"
+  },
+  "nixNpmBuildpackage": {
+    "owner": "serokell",
+    "repo": "nix-npm-buildpackage",
+    "branch": "master",
+    "rev": "0945a420e032221326671080bf08eb817d4ccce4",
+    "sha256": "14ygg4x0225zhkhhd0ydjidiycw8pdyyz5c1v3g45fj7zpylh64v"
+  }
+}

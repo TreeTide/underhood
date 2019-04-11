@@ -1,0 +1,41 @@
+# Haskell
+cabal-dev
+*.o
+*.hi
+*.chi
+*.chs.h
+*.dyn_o
+*.dyn_hi
+.hpc
+.hsenv
+.cabal-sandbox/
+cabal.sandbox.config
+*.prof
+*.aux
+*.hp
+*.swp
+.projectile
+.stack-work/
+*.exe
+.cache
+pg_*.log
+\#*#
+.*
+*~
+
+# Bazel
+bazel-treetide-workspace
+bazel-bin
+bazel-genfiles
+bazel-out
+bazel-testlogs
+
+# Nix
+result
+
+tags
+TAGS
+
+# JS
+node_modules
+dist

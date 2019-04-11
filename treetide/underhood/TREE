@@ -1,0 +1,46 @@
+- frontend
+  - TODO: server binary doesn't log / respond to invalid paths
+  - TODO: automatically fold/summarize legal preamble and other stuff.
+
+- Features TODO
+  - Translation
+    - callers in XRefReply
+      - HTTP server doesn't provide them? They seem missing.
+
+  - caching things
+
+  - load test
+
+  - FE IDE-on-par features
+    - Document outline
+    - Hierarchy panel based on sub/superclass info.
+    - Mark super/subclass on gutter (can get from extends_overrides in decor req)
+    - Top pane with info
+    - Show current file in filetree nav
+
+  - FE xrefs
+    - return ref language for xrefs
+    - preprocess returned refs to  fit UI (group by file, etc)
+    - xref paging
+    - optional: show N lines around snippets
+
+  - FE
+    - jump to line if present in url
+
+  - Full text search
+
+  - Wish
+    - magic keyword indexing (+camelCase, kebab-case..)
+    - name indexing (loose name -> ticket lookup)
+
+    - highlight ref density on filetree
+    - xref counters on definitions (on-demand / auto).
+
+    - Kythe: no callers recorded for 'go'? Callchain, xref site type doesn't work yet.
+    - Write/Read locations, need support for "assignment" node in kythe.
+    - Document overview mode - skip bodies, etc. Like outline but keep formatting,
+      comments etc. Maybe even subfunction, variable names?
+
+    - Decor: request target definitions, so direct jump is possible w/o xref query
+      (premature opt)
+
