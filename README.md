@@ -21,6 +21,8 @@ For the first time, do `npm ci` to get `node_modules` pulled.
 
 ### Running underhood locally.
 
+#### Getting a Kythe index
+
 TODO(robinp): automate. In the mean time use
 https://github.com/TreeTide/kythe/tree/nix (see
 https://github.com/TreeTide/kythe/blob/nix/README.treetide.md) to compile
