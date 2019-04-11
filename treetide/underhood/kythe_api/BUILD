@@ -11,7 +11,7 @@ load(
 
 haskell_library(
     name = "kythe_api",
-    srcs = ["KytheApi.hs"],
+    srcs = ["kythe_api.hs"],
     deps = [
         "//treetide/haskell/json_naming",
         prebuilt("aeson"),
@@ -25,7 +25,7 @@ haskell_library(
 
 haskell_library(
     name = "convert",
-    srcs = ["KytheApi/Convert.hs"],
+    srcs = ["convert.hs"],
     deps = [
         ":kythe_api",
         prebuilt("base"),

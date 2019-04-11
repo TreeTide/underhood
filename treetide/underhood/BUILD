@@ -10,8 +10,8 @@ load(
 )
 
 haskell_library(
-    name = "xref_frontend_api",
-    srcs = ["XrefFrontendApi.hs"],
+    name = "frontend_api",
+    srcs = ["frontend_api.hs"],
     deps = [
         prebuilt("aeson"),
         prebuilt("protolude"),

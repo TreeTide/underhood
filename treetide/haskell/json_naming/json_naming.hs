@@ -1,10 +1,10 @@
 -- | Generic usage of 'Options' types:
 --
 --     instance ToJSON Foo
---       where toJSON = genericToJSON theOptions
+--       where toJSON = genericToJSON (optionModifier defaultOptions)
 --
 --     instance FromJSON Foo
---       where parseJSON = genericParseJSON theOptions
+--       where parseJSON = genericParseJSON (optionModifier defaultOptions)
 --
 module TreeTide.JsonNaming (dropPrimedPostfix, unwrapNewtype) where
 
@@ -14,13 +14,13 @@ import           Data.Aeson.Types
 --
 --     foo_field'DT -> foo_field
 --
-dropPrimedPostfix :: Options
-dropPrimedPostfix = defaultOptions { fieldLabelModifier = fieldModifier }
+dropPrimedPostfix :: Options -> Options
+dropPrimedPostfix o = o { fieldLabelModifier = fieldModifier }
   where
     fieldModifier :: String -> String
-    fieldModifier = reverse . tail . dropWhile (not . (== '\'')) . reverse
+    fieldModifier = reverse . tail . dropWhile (/= '\'') . reverse
 
 -- | Stores the content unwrapped.
-unwrapNewtype :: Options
-unwrapNewtype = defaultOptions { unwrapUnaryRecords = True }
+unwrapNewtype :: Options -> Options
+unwrapNewtype o = o { unwrapUnaryRecords = True }
 

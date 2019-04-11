@@ -4,24 +4,23 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 
 {-# LANGUAGE TypeOperators #-}
-module TreeTide.Hood.XRef.Frontend.Api
-    ( XRefApi'
+module TreeTide.UnderHood.FrontendApi
+    ( XRefApi
     , XRefReply(..)
     , Site(..)
     --
     , FileTreeApi
-    , FileTreeApi'
     , Subtree(..)
     , TreeEntryKind(..), treeEntryIsDir
     --
-    , SourceApi'
+    , SourceApi
     --
-    , DecorApi'
+    , DecorApi
     , DecorReply(..)
     , Decor(..)
     , CmPoint(..), CmRange(..)
     --
-    , DocApi'
+    , DocApi
     , DocReply(..)
     )
 where
@@ -33,8 +32,6 @@ import           Data.Text                      ( Text, toLower )
 import           Servant.API
 
 type FileTreeApi = "filetree" :> Get '[JSON] Subtree
-
-type FileTreeApi' f = "filetree" :> Get '[JSON] (f Subtree)
 
 data Subtree = Subtree
     { kytheUri :: Text
@@ -70,12 +67,12 @@ treeEntryIsDir k = case k of
 -- TODO send the byte index in the source where a pageful of stuff can be
 --   shown, for faster CodeMirror loading (first load the pageful, and then
 --   the full source).
-type SourceApi' f = "source"
+type SourceApi = "source"
     :> QueryParam "ticket" Text
     :> QueryParam "preview" Int
-    :> Get '[JSON] (f Text)
+    :> Get '[JSON] Text
 
-type DecorApi' f = "decor" :> QueryParam "ticket" Text :> Get '[JSON] (f DecorReply)
+type DecorApi = "decor" :> QueryParam "ticket" Text :> Get '[JSON] DecorReply
 
 data DecorReply = DecorReply
     { decors :: [Decor]
@@ -105,9 +102,9 @@ data CmRange = CmRange
 
 --
 
-type DocApi' f = "doc"
+type DocApi = "doc"
     :> QueryParam "ticket" Text
-    :> Get '[JSON] (f DocReply)
+    :> Get '[JSON] DocReply
 
 data DocReply = DocReply
     { docText :: Maybe Text
@@ -122,9 +119,9 @@ data DocReply = DocReply
 
 --
 
-type XRefApi' f = "xref"
+type XRefApi = "xref"
     :> QueryParam "ticket" Text
-    :> Get '[JSON] (f XRefReply)
+    :> Get '[JSON] XRefReply
 
 data XRefReply = XRefReply
     { refs :: [Site]

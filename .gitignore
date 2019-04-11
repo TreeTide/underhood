@@ -24,7 +24,7 @@ pg_*.log
 *~
 
 # Bazel
-bazel-treetide-workspace
+bazel-underhood
 bazel-bin
 bazel-genfiles
 bazel-out

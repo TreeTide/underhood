@@ -5,6 +5,66 @@ Note for UnderHood: `treetide-workspace` refers to the repository root with the
 bazel `WORKSPACE` file. Reason: UnderHood was forked out from the treetide
 monorepo.
 
+## Getting started quickly
+
+### Building backend
+
+Get a `nix-shell` in repo root. Get a coffee when you do this the first time.
+
+Execute `bazel build -c opt //treetide/...`.
+
+### Building frontend.
+
+Get a `nix-shell` in `treetide/underhood/ui`.
+
+For the first time, do `npm ci` to get `node_modules` pulled.
+
+### Running underhood locally.
+
+TODO(robinp): automate. In the mean time use
+https://github.com/TreeTide/kythe/tree/nix (see
+https://github.com/TreeTide/kythe/blob/nix/README.treetide.md) to compile
+Kythe.
+
+Once Kythe tools are compiled, TLDR of getting an index (on Kythe itself):
+https://gist.github.com/robinp/a7a10db5b38630a9a0ffc805fc402500
+
+#### Running underhood
+
+With backend and frontend built like above, use `bazel run -c opt
+//treetide/underhood/frontend_server` to start the frontend API server (from a
+repo-rooted `nix-shell`, as always).
+
+In `treetide/underhood/ui`, execute `npm run start:dev` to start up the
+hot-reloading UI server.
+
+Visit `http://localhost:9000`.
+
+### Deploying underhood using NixOps
+
+#### To a VirtualBox VM
+
+First, build the backend using above instructions. This step is not yet hermetic
+in the deploy process. Then get a `nix-shell` in `production`. Now you have the
+`ttops` command, which is just an alias to a version-pinned `nixops`.
+
+The `ttops create -d my-uh-vm underhood/local/vbox.ops.nix` command will set
+up the deployment metadata, which you can verify with `ttops list`.
+
+Use `ttops deploy -d my-uh-vm` to deploy a new version to the VM.
+
+Finally execute `ttops ssh -d my-uh-vm underhood-main -L
+0.0.0.0:9001:127.0.0.1:80` to tunnel the VM's web server to your port.
+
+Use `ttops scp -d my-uh-vm ...` to copy kythe binaries and indices to the VM
+for the time being. Start the kythe api server in the vm.
+
+Bring up `frontend_server` in the VM using `systemctl start
+underhood_frontend_server`, check its status using `systemctl status` and
+`journalctl`.
+
+Visit `http://localhost:9001`.
+
 ## File structure
 
 ```

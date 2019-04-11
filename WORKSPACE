@@ -11,6 +11,7 @@ http_archive(
     name = "io_tweag_rules_haskell",
     strip_prefix = "rules_haskell-513b14c0b3ece6d05b159455bb2df7335c759156",
     urls = ["https://github.com/tweag/rules_haskell/archive/513b14c0b3ece6d05b159455bb2df7335c759156.tar.gz"],
+    sha256 = "c9f0be2ddfc4820d83141e399668f5277dee5ba5e3b7cc6d278e7f116f3568d9",
 )
 
 load("@io_tweag_rules_haskell//haskell:repositories.bzl", "haskell_repositories")
@@ -21,6 +22,7 @@ http_archive(
     name = "io_tweag_rules_nixpkgs",
     strip_prefix = "rules_nixpkgs-0.5.2",
     urls = ["https://github.com/tweag/rules_nixpkgs/archive/v0.5.2.tar.gz"],
+    sha256 = "5a384daa57b49abf9f0b672852f1a66a3c52aecf9d4d2ac64f6de0fd307690c8",
 )
 
 load("@io_tweag_rules_nixpkgs//nixpkgs:nixpkgs.bzl", "nixpkgs_local_repository", "nixpkgs_package")
@@ -61,6 +63,7 @@ http_archive(
     name = "com_github_bazelbuild_buildtools",
     strip_prefix = "buildtools-1f3678932acd38e2c0a4e2b2db526d30a8f540a6",
     url = "https://github.com/bazelbuild/buildtools/archive/1f3678932acd38e2c0a4e2b2db526d30a8f540a6.zip",
+    sha256 = "50959f8806b0bd596c21b5d0b6c81d6305704579f1cc6836c44c541e4d7c0416",
 )
 
 load("@com_github_bazelbuild_buildtools//buildifier:deps.bzl", "buildifier_dependencies")

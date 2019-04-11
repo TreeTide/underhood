@@ -1,7 +1,7 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
-module Kythe.Api.Convert
+module TreeTide.UnderHood.KytheApi.Convert
     ( kytheUriToDirectoryRequest
     , kytheUriFromDirectoryRequest
     )
@@ -14,7 +14,7 @@ import qualified Data.Text                     as T
 import           Network.URI
 import           Network.HTTP.Types.URI         ( parseQueryText )
 
-import           Kythe.Api
+import           TreeTide.UnderHood.KytheApi
 
 -- TODO see https://kythe.io/docs/kythe-uri-spec.html, parse more, and
 -- not directly into DirectoryRequest.

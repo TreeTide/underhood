@@ -4,7 +4,7 @@
 -- {-# LANGUAGE GeneralizedNewtypeDeriving #-}  -- NOTE maybe DerivingVia to select?
 
 {-# LANGUAGE TypeOperators #-}
-module Kythe.Api
+module TreeTide.UnderHood.KytheApi
     ( CorpusRootsApi
     , CorpusRootsReply(..)
     , CorpusRoots(..)
@@ -295,158 +295,162 @@ data Anchor = Anchor
 
 --
 
+messageOptions, newtypeOptions :: Options
+messageOptions = dropPrimedPostfix defaultOptions { omitNothingFields = True }
+newtypeOptions = unwrapNewtype defaultOptions
+
 instance ToJSON DirEntryKind
 instance FromJSON DirEntryKind
 instance ToJSON CorpusRootsReply
   where
-    toJSON = genericToJSON dropPrimedPostfix
+    toJSON = genericToJSON messageOptions
 instance ToJSON CorpusRoots
   where
-    toJSON = genericToJSON dropPrimedPostfix
+    toJSON = genericToJSON messageOptions
 instance ToJSON DirectoryRequest
   where
-    toJSON = genericToJSON dropPrimedPostfix
+    toJSON = genericToJSON messageOptions
 instance ToJSON DirectoryReply
   where
-    toJSON = genericToJSON dropPrimedPostfix
+    toJSON = genericToJSON messageOptions
 instance ToJSON DirEntry
   where
-    toJSON = genericToJSON dropPrimedPostfix
+    toJSON = genericToJSON messageOptions
 instance ToJSON DecorationsRequest
   where
-    toJSON = genericToJSON dropPrimedPostfix
+    toJSON = genericToJSON messageOptions
 instance ToJSON DecorationsReply
   where
-    toJSON = genericToJSON dropPrimedPostfix
+    toJSON = genericToJSON messageOptions
 instance ToJSON Location
   where
-    toJSON = genericToJSON dropPrimedPostfix
+    toJSON = genericToJSON messageOptions
 instance ToJSON Reference
   where
-    toJSON = genericToJSON dropPrimedPostfix
+    toJSON = genericToJSON messageOptions
 instance ToJSON Span
   where
-    toJSON = genericToJSON dropPrimedPostfix
+    toJSON = genericToJSON messageOptions
 instance ToJSON Point
   where
-    toJSON = genericToJSON dropPrimedPostfix
+    toJSON = genericToJSON messageOptions
 instance ToJSON DocumentationRequest
   where
-    toJSON = genericToJSON dropPrimedPostfix
+    toJSON = genericToJSON messageOptions
 instance ToJSON DocumentationReply
   where
-    toJSON = genericToJSON dropPrimedPostfix
+    toJSON = genericToJSON messageOptions
 instance ToJSON Document
   where
-    toJSON = genericToJSON dropPrimedPostfix
+    toJSON = genericToJSON messageOptions
 instance ToJSON Printable
   where
-    toJSON = genericToJSON dropPrimedPostfix
+    toJSON = genericToJSON messageOptions
 instance ToJSON CrossReferencesRequest
   where
-    toJSON = genericToJSON dropPrimedPostfix
+    toJSON = genericToJSON messageOptions
 instance ToJSON CrossReferencesReply
   where
-    toJSON = genericToJSON dropPrimedPostfix
+    toJSON = genericToJSON messageOptions
 instance ToJSON Total
   where
-    toJSON = genericToJSON dropPrimedPostfix
+    toJSON = genericToJSON messageOptions
 instance ToJSON CrossReferenceSet
   where
-    toJSON = genericToJSON dropPrimedPostfix
+    toJSON = genericToJSON messageOptions
 instance ToJSON RelatedAnchor
   where
-    toJSON = genericToJSON dropPrimedPostfix
+    toJSON = genericToJSON messageOptions
 instance ToJSON Anchor
   where
-    toJSON = genericToJSON dropPrimedPostfix
+    toJSON = genericToJSON messageOptions
 
 instance FromJSON CorpusRootsReply
   where
-    parseJSON = genericParseJSON dropPrimedPostfix
+    parseJSON = genericParseJSON messageOptions
 instance FromJSON CorpusRoots
   where
-    parseJSON = genericParseJSON dropPrimedPostfix
+    parseJSON = genericParseJSON messageOptions
 instance FromJSON DirectoryRequest
   where
-    parseJSON = genericParseJSON dropPrimedPostfix
+    parseJSON = genericParseJSON messageOptions
 instance FromJSON DirectoryReply
   where
-    parseJSON = genericParseJSON dropPrimedPostfix
+    parseJSON = genericParseJSON messageOptions
 instance FromJSON DirEntry
   where
-    parseJSON = genericParseJSON dropPrimedPostfix
+    parseJSON = genericParseJSON messageOptions
 instance FromJSON DecorationsRequest
   where
-    parseJSON = genericParseJSON dropPrimedPostfix
+    parseJSON = genericParseJSON messageOptions
 instance FromJSON DecorationsReply
   where
-    parseJSON = genericParseJSON dropPrimedPostfix
+    parseJSON = genericParseJSON messageOptions
 instance FromJSON Location
   where
-    parseJSON = genericParseJSON dropPrimedPostfix
+    parseJSON = genericParseJSON messageOptions
 instance FromJSON Reference
   where
-    parseJSON = genericParseJSON dropPrimedPostfix
+    parseJSON = genericParseJSON messageOptions
 instance FromJSON Span
   where
-    parseJSON = genericParseJSON dropPrimedPostfix
+    parseJSON = genericParseJSON messageOptions
 instance FromJSON Point
   where
-    parseJSON = genericParseJSON dropPrimedPostfix
+    parseJSON = genericParseJSON messageOptions
 instance FromJSON DocumentationRequest
   where
-    parseJSON = genericParseJSON dropPrimedPostfix
+    parseJSON = genericParseJSON messageOptions
 instance FromJSON DocumentationReply
   where
-    parseJSON = genericParseJSON dropPrimedPostfix
+    parseJSON = genericParseJSON messageOptions
 instance FromJSON Document
   where
-    parseJSON = genericParseJSON dropPrimedPostfix
+    parseJSON = genericParseJSON messageOptions
 instance FromJSON Printable
   where
-    parseJSON = genericParseJSON dropPrimedPostfix
+    parseJSON = genericParseJSON messageOptions
 instance FromJSON CrossReferencesRequest
   where
-    parseJSON = genericParseJSON dropPrimedPostfix
+    parseJSON = genericParseJSON messageOptions
 instance FromJSON CrossReferencesReply
   where
-    parseJSON = genericParseJSON dropPrimedPostfix
+    parseJSON = genericParseJSON messageOptions
 instance FromJSON Total
   where
-    parseJSON = genericParseJSON dropPrimedPostfix
+    parseJSON = genericParseJSON messageOptions
 instance FromJSON CrossReferenceSet
   where
-    parseJSON = genericParseJSON dropPrimedPostfix
+    parseJSON = genericParseJSON messageOptions
 instance FromJSON RelatedAnchor
   where
-    parseJSON = genericParseJSON dropPrimedPostfix
+    parseJSON = genericParseJSON messageOptions
 instance FromJSON Anchor
   where
-    parseJSON = genericParseJSON dropPrimedPostfix
+    parseJSON = genericParseJSON messageOptions
 
 instance ToJSON Corpus
   where
-    toJSON = genericToJSON unwrapNewtype
+    toJSON = genericToJSON newtypeOptions
 instance ToJSON Root
   where
-    toJSON = genericToJSON unwrapNewtype
+    toJSON = genericToJSON newtypeOptions
 instance ToJSON KytheUri
   where
-    toJSON = genericToJSON unwrapNewtype
+    toJSON = genericToJSON newtypeOptions
 instance ToJSONKey KytheUri
   where
     toJSONKey = toJSONKeyText unKytheUri
 
 instance FromJSON Corpus
   where
-    parseJSON = genericParseJSON unwrapNewtype
+    parseJSON = genericParseJSON newtypeOptions
 instance FromJSON Root
   where
-    parseJSON = genericParseJSON unwrapNewtype
+    parseJSON = genericParseJSON newtypeOptions
 instance FromJSON KytheUri
   where
-    parseJSON = genericParseJSON unwrapNewtype
+    parseJSON = genericParseJSON newtypeOptions
 instance FromJSONKey KytheUri
   where
     fromJSONKey = fromJSONKeyCoerce

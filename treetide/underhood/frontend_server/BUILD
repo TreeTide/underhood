@@ -3,6 +3,7 @@ package(default_visibility = ["//visibility:public"])
 load(
     "@io_tweag_rules_haskell//haskell:haskell.bzl",
     "haskell_binary",
+    "haskell_library",
 )
 load(
     "//treetide/haskell/build_defs:build.bzl",
@@ -10,13 +11,25 @@ load(
     "prebuilt",
 )
 
-haskell_binary(
-    name = "frontend_server",
-    srcs = ["FrontendServer.hs"],
+haskell_library(
+    name = "types",
+    srcs = ["types.hs"],
     deps = [
         "//treetide/underhood/kythe_api",
+        "//treetide/underhood:frontend_api",
+        prebuilt("servant-client"),
+        prebuilt("servant-server"),
+    ],
+)
+
+haskell_binary(
+    name = "frontend_server",
+    srcs = ["frontend_server.hs"],
+    deps = [
+        ":types",
+        "//treetide/underhood/kythe_api",
         "//treetide/underhood/kythe_api:convert",
-        "//treetide/underhood/xref_frontend_api",
+        "//treetide/underhood:frontend_api",
         extended("optparse-applicative"),
         prebuilt("base"),
         prebuilt("base64-bytestring"),
