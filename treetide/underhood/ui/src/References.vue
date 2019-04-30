@@ -11,6 +11,7 @@
               <span class="clickableRef" @click="onClick(ref)"><span class="refLine">{{_refVisualLine(ref)}}</span> <span v-html="_formatRefSnippet(ref)" /></span>
             </div>
           </div>
+          <div class="sectionSpacer"/>
         </div>
 
         <div v-if="_exists(definitions)">
@@ -21,15 +22,13 @@
               <span class="clickableRef" @click="onClick(ref)"><span class="refLine">{{_refVisualLine(ref)}}</span> <span v-html="_formatRefSnippet(ref)" /></span>
             </div>
           </div>
+          <div class="sectionSpacer"/>
         </div>
 
         <div class="refHeading">References ({{ refCount }})</div>
         <div v-for="k in _keys(groupedRefs)">
           <div class="refFile">
-            <!-- TODO choose icon based on language actually -->
-            <!-- Hack, haskell not compiled into devicon fonts yet -->
-            <img class="tinyIcon" :src='require("devicon/haskell/haskell-original.svg")' />
-            <!-- i class="devicon-git-plain"></i -->
+            <LangIcon :for-file="k" />
             {{k}}
           </div>
           <div v-for="ref in _values(groupedRefs, k)">
@@ -52,7 +51,7 @@ import 'codemirror/lib/codemirror.css';
 import 'codemirror/addon/runmode/runmode.js';
 import 'codemirror/mode/go/go.js';
 
-import 'devicon/devicon.css';
+import LangIcon from './LangIcon.vue';
 
 // TODO un-singleton
 let state = {
@@ -64,6 +63,9 @@ export default {
     ticket: String,
     highlightMode: String,
     highlightStyle: String,
+  },
+  components: {
+    LangIcon
   },
   data () {
     return {
@@ -185,6 +187,9 @@ export default {
 </script>
 
 <style>
+.sectionSpacer {
+  margin-bottom: 5px;
+}
 .refPanelHighlight {
   font-weight: bold;
   text-decoration: underline dotted;
@@ -197,7 +202,7 @@ export default {
 }
 .refLine {
   color: grey;
-  margin-left: 10px;
+  margin-left: 0px;
 }
 .refLine::after {
   content: ':';
@@ -206,6 +211,7 @@ export default {
   background: #d8d8d8;
 }
 .refFile {
+  margin-top: 3px;
   color: #444;
 }
 .tinyIcon {
