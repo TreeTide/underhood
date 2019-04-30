@@ -288,13 +288,21 @@ transcodeXRef rep =
     relFor mbCRS selector = unMaybeList (mbCRS >>= selector)
     --
     anchorToSite :: K.Anchor -> Maybe Api.Site
-    anchorToSite a = do
-
+    anchorToSite a =
         Api.Site
             <$> (K.unKytheUri <$> K.parent'A a)
+            <*> (formatDisplayedPath <$> (K.kytheUriToParts <=< K.parent'A) a)
             <*> K.snippet'A a
             <*> (span2range <$> K.snippet_span'A a)
             <*> (span2range <$> K.span'A a)
+      where
+        formatDisplayedPath :: K.CorpusRootPath -> Text
+        formatDisplayedPath (K.CorpusRootPath c r p) = mconcat . map mb2e $
+          [ (<> "/") . K.unCorpus <$> c
+          , (<> "/") . K.unRoot <$> r
+          , K.unPath <$> p
+          ]
+          where mb2e = fromMaybe ""
 
 transcodeDoc :: K.DocumentationReply -> Api.DocReply
 transcodeDoc rep =

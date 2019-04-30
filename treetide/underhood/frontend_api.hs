@@ -133,8 +133,8 @@ data XRefReply = XRefReply
 
 -- TODO caller fn for calls
 data Site = Site
-    { sFileTicket :: Text  -- TODO newtype KytheUri
-    --, sDisplayName :: Text
+    { sFileTicket :: Text
+    , sDisplayName :: Text
     , sSnippet :: Text
     , sSnippetSpan :: CmRange
     , sSpan :: CmRange

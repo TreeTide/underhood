@@ -51,6 +51,21 @@ const config = {
         test: /\.vue$/,
         loader: 'vue-loader'
       },
+      //{
+      //  test: /\.svg$/,
+      //  loader: 'svg-inline-loader'
+      //},
+      {
+        // See https://chriscourses.com/blog/loading-fonts-webpack
+        test: /\.(woff(2)?|ttf|eot|svg)(\?v=\d+\.\d+\.\d+)?$/,
+        use: [{
+            loader: 'file-loader',
+            options: {
+                name: '[name].[ext]',
+                outputPath: 'fonts/'
+            }
+        }]
+      },
     ]
   },
   devServer: {
