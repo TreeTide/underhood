@@ -40,10 +40,12 @@ import           Text.Show.Deriving             ( deriveShow1 )
 
 import qualified Options.Applicative.Extended  as O
 
-import qualified TreeTide.UnderHood.FrontendApi as Api
+import qualified TreeTide.UnderHood.FrontendApi
+                                               as Api
 import           TreeTide.UnderHood.FrontendServer.Types
-import qualified TreeTide.UnderHood.KytheApi                     as K
-import qualified TreeTide.UnderHood.KytheApi.Convert             as K
+import qualified TreeTide.UnderHood.KytheApi   as K
+import qualified TreeTide.UnderHood.KytheApi.Convert
+                                               as K
 
 data DirF a = DirF K.DirectoryRequest [a]
     deriving (Eq, Ord, Functor)
@@ -78,14 +80,19 @@ newtype ConstProd c f a = ConstProd (Product (Const c) f a)
 
 deriveShow1 'ConstProd
 
-type AugmentedFileTree = Free (ConstProd Text DirF) (Text, FileRef)
+-- | Bundles the parent directory path with each tree node.
+type AugmentedFileTree = Free (ConstProd ParentPath DirF) (ParentPath, FileRef)
+
+newtype ParentPath = ParentPath K.Path
+    deriving (Eq, Ord, Show)
 
 addIncrement :: FileTree -> AugmentedFileTree
 addIncrement = hoistWithUpper
-    (\(DirF req _) -> fromMaybe "" (K.path'DirReq req))
-    ""
+    (\(DirF req _) -> maybe emptyParent ParentPath (K.path'DirReq req))
+    emptyParent
     (\n f -> ConstProd (Pair (Const n) f))
     (\n u -> (n, u))
+    where emptyParent = ParentPath (K.Path "")
 
 queryDirs :: ClientM [[FileTree]]
 queryDirs = do
@@ -108,6 +115,8 @@ subtree req = do
             ((== K.FILE) . K.kind'DirEntry)
             (unMaybeList . K.entry'DirRep $ listing)
         fs = map
+        -- TODO FileRef could include f's name, so we wouldn't need to
+        --   manually infer that later.
             (\f -> Pure . FileRef . K.kytheUriFromDirectoryRequest $ appEndo
                 (appendDirReqPath f)
                 req
@@ -120,21 +129,22 @@ subtree req = do
     appendDirReqPath e = Endo $ \r ->
         let p = K.name'DirEntry e
         in  r
-                { K.path'DirReq = Just $! maybe p
-                                                (\p0 -> p0 <> "/" <> p)
-                                                (K.path'DirReq r)
+                { K.path'DirReq = Just . K.Path $! maybe
+                                      p
+                                      (\p0 -> p0 <> "/" <> p)
+                                      (K.unPath <$> K.path'DirReq r)
                 }
 
 isGenerated :: K.KytheUri -> Bool
 isGenerated uri =
-    let r = K.unRoot <$> (K.root'DirReq <=< K.kytheUriToDirectoryRequest) uri
-        -- TODO this is hard-coded, use a more general config.
+    let r = K.unRoot <$> (K.crpRoot <=< K.kytheUriToParts) uri
+            -- TODO this is hard-coded, use a more general config.
     in  maybe False ("bazel-out" `T.isPrefixOf`) r
 
 transcodeFileTree :: AugmentedFileTree -> Api.Subtree
 transcodeFileTree ft = case ft of
     Pure (up, FileRef kUri@(K.KytheUri rawUri)) ->
-        let mbFilePath = K.kytheUriToDirectoryRequest kUri >>= K.path'DirReq
+        let mbFilePath = K.kytheUriToParts kUri >>= K.crpPath
             display    = maybe "<unknown_path>" (diffPath up) mbFilePath
             generated  = isGenerated kUri
         in  Api.Subtree rawUri
@@ -151,8 +161,9 @@ transcodeFileTree ft = case ft of
                    False  -- correct value filled in merge step
                    (map transcodeFileTree as)
 
-diffPath :: Text -> Text -> Text
-diffPath short long = T.dropWhile (== '/') . T.drop (T.length short) $ long
+diffPath :: ParentPath -> K.Path -> Text
+diffPath (ParentPath (K.Path short)) (K.Path long) =
+    T.dropWhile (== '/') . T.drop (T.length short) $ long
 
 
 data MergeKey = MergeKey
@@ -312,7 +323,8 @@ transcodeXRef rep =
     relFor mbCRS selector = unMaybeList (mbCRS >>= selector)
     --
     anchorToSite :: K.Anchor -> Maybe Api.Site
-    anchorToSite a =
+    anchorToSite a = do
+
         Api.Site
             <$> (K.unKytheUri <$> K.parent'A a)
             <*> K.snippet'A a

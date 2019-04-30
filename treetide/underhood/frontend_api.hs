@@ -134,7 +134,7 @@ data XRefReply = XRefReply
 -- TODO caller fn for calls
 data Site = Site
     { sFileTicket :: Text  -- TODO newtype KytheUri
-                           -- TODO prepare nice file name on server-side.
+    --, sDisplayName :: Text
     , sSnippet :: Text
     , sSnippetSpan :: CmRange
     , sSpan :: CmRange
