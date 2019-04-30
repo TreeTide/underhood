@@ -10,14 +10,11 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeApplications #-}
 
-import           Protolude               hiding ( Product
-                                                , groupBy
-                                                )
+import           Protolude               hiding ( groupBy )
 
 import           Control.Monad.Free
 import qualified Data.ByteString.Base64        as Base64
 import           Data.Default                   ( def )
-import           Data.Functor.Product
 import qualified Data.List                     as L
 import qualified Data.List.NonEmpty            as NE
 import qualified Data.Map                      as M
@@ -47,52 +44,21 @@ import qualified TreeTide.UnderHood.KytheApi   as K
 import qualified TreeTide.UnderHood.KytheApi.Convert
                                                as K
 
-data DirF a = DirF K.DirectoryRequest [a]
+newtype DisplayName = DisplayName Text
+    deriving (Eq, Ord, Show)
+
+data DirF a = DirF K.DirectoryRequest DisplayName [a]
     deriving (Eq, Ord, Functor)
 
 deriveShow1 'DirF
 
-newtype FileRef = FileRef K.KytheUri
+data FileRef = FileRef K.KytheUri DisplayName
     deriving (Eq, Ord, Show)
 
 type FileTree = Free DirF FileRef
 
--- See https://mail.haskell.org/pipermail/haskell-cafe/2019-January/130638.html.
-hoistWithUpper
-    :: forall f g s t n
-     . (Functor g)
-    => (forall a . f a -> n)
-    -> n
-    -> (forall a . n -> f a -> g a)
-    -> (n -> s -> t)
-    -> Free f s
-    -> Free g t
-hoistWithUpper fu n0 hoistFr hoistPure = go n0
-  where
-    go :: n -> Free f s -> Free g t
-    go n fr = case fr of
-        Pure s -> Pure (hoistPure n s)
-        Free f ->
-            let n2 = fu f in Free (go n2 <$> (hoistFr n f :: g (Free f s)))
-
-newtype ConstProd c f a = ConstProd (Product (Const c) f a)
-    deriving (Eq, Ord, Functor)
-
-deriveShow1 'ConstProd
-
--- | Bundles the parent directory path with each tree node.
-type AugmentedFileTree = Free (ConstProd ParentPath DirF) (ParentPath, FileRef)
-
 newtype ParentPath = ParentPath K.Path
     deriving (Eq, Ord, Show)
-
-addIncrement :: FileTree -> AugmentedFileTree
-addIncrement = hoistWithUpper
-    (\(DirF req _) -> maybe emptyParent ParentPath (K.path'DirReq req))
-    emptyParent
-    (\n f -> ConstProd (Pair (Const n) f))
-    (\n u -> (n, u))
-    where emptyParent = ParentPath (K.Path "")
 
 queryDirs :: ClientM [[FileTree]]
 queryDirs = do
@@ -100,30 +66,38 @@ queryDirs = do
     mapM fetchCorpusTree crs
   where
     fetchCorpusTree (K.CorpusRoots c rs) = mapM
-        (\r -> subtree K.DirectoryRequest
-            { K.corpus'DirReq = fromMaybe (K.Corpus "") c
-            , K.root'DirReq   = guard (not . T.null . K.unRoot $ r) >> Just r
-            , K.path'DirReq   = Nothing
-            }
+        (\r -> subtree
+            (DisplayName $ maybe "<corpus>" K.unCorpus c)
+            K.DirectoryRequest
+                { K.corpus'DirReq = fromMaybe (K.Corpus "") c
+                , K.root'DirReq = guard (not . T.null . K.unRoot $ r) >> Just r
+                , K.path'DirReq = Nothing
+                }
         )
         rs
 
-subtree :: K.DirectoryRequest -> ClientM FileTree
-subtree req = do
+subtree :: DisplayName -> K.DirectoryRequest -> ClientM FileTree
+subtree dn req = do
     listing <- getDirectory req
     let (files, dirs) = L.partition
             ((== K.FILE) . K.kind'DirEntry)
             (unMaybeList . K.entry'DirRep $ listing)
         fs = map
-        -- TODO FileRef could include f's name, so we wouldn't need to
-        --   manually infer that later.
-            (\f -> Pure . FileRef . K.kytheUriFromDirectoryRequest $ appEndo
-                (appendDirReqPath f)
-                req
+            (\f ->
+                Pure
+                    . flip FileRef (DisplayName $ K.name'DirEntry f)
+                    . K.kytheUriFromDirectoryRequest
+                    $ appEndo (appendDirReqPath f) req
             )
             files
-    ds <- traverse subtree . map (\d -> appEndo (appendDirReqPath d) req) $ dirs
-    return $! Free $! DirF req (ds ++ fs)
+    ds <-
+        mapM
+                (\d ->
+                    let newReq = appEndo (appendDirReqPath d) req
+                    in  subtree (DisplayName $ K.name'DirEntry d) newReq
+                )
+            $ dirs
+    return $! Free $! DirF req dn (ds ++ fs)
   where
     appendDirReqPath :: K.DirEntry -> Endo K.DirectoryRequest
     appendDirReqPath e = Endo $ \r ->
@@ -138,33 +112,24 @@ subtree req = do
 isGenerated :: K.KytheUri -> Bool
 isGenerated uri =
     let r = K.unRoot <$> (K.crpRoot <=< K.kytheUriToParts) uri
-            -- TODO this is hard-coded, use a more general config.
+                -- TODO this is hard-coded, use a more general config.
     in  maybe False ("bazel-out" `T.isPrefixOf`) r
 
-transcodeFileTree :: AugmentedFileTree -> Api.Subtree
+transcodeFileTree :: FileTree -> Api.Subtree
 transcodeFileTree ft = case ft of
-    Pure (up, FileRef kUri@(K.KytheUri rawUri)) ->
-        let mbFilePath = K.kytheUriToParts kUri >>= K.crpPath
-            display    = maybe "<unknown_path>" (diffPath up) mbFilePath
-            generated  = isGenerated kUri
+    Pure (FileRef kUri@(K.KytheUri rawUri) (DisplayName display)) ->
+        let generated = isGenerated kUri
         in  Api.Subtree rawUri
                         display
                         (bool Api.File Api.GeneratedFile generated)
                         generated
                         []
-    Free (ConstProd (Pair (Const up) (DirF req@(K.DirectoryRequest (K.Corpus c) _ mbPath) as)))
-        -> let display = maybe c (diffPath up) mbPath
-           in  Api.Subtree
-                   (K.unKytheUri (K.kytheUriFromDirectoryRequest req))
-                   display
-                   Api.Directory
-                   False  -- correct value filled in merge step
-                   (map transcodeFileTree as)
-
-diffPath :: ParentPath -> K.Path -> Text
-diffPath (ParentPath (K.Path short)) (K.Path long) =
-    T.dropWhile (== '/') . T.drop (T.length short) $ long
-
+    Free (DirF req (DisplayName display) as) -> Api.Subtree
+        (K.unKytheUri (K.kytheUriFromDirectoryRequest req))
+        display
+        Api.Directory
+        False  -- correct value filled in merge step
+        (map transcodeFileTree as)
 
 data MergeKey = MergeKey
     { mkDisplay :: Text
@@ -208,7 +173,7 @@ server opts manager' =
         (BaseUrl Http (toS $ oKytheHost opts) (oKythePort opts) "")
     --
     serveFileTree = Handler . ExceptT . liftIO $ do
-        res <- runClientM (map (map addIncrement) <$> queryDirs) clientEnv
+        res <- runClientM queryDirs clientEnv
         let treeRes = bimap
                 (const err503 { errBody = "Couldn't get tree." })
                         -- TODO merge or otherwise present trees
