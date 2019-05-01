@@ -2,27 +2,35 @@
   <div class="refPanel">
     <div v-if="ticket">
       <div v-if="!loading">
-        Declarations:
-        <!-- TODO un-copy-paste -->
-        <div v-for="k in _keys(groupedDeclarations)">
-          {{k}}
-          <div v-for="ref in _values(groupedDeclarations, k)">
-            <span class="clickableRef" @click="onClick(ref)"><span class="refLine">{{_refVisualLine(ref)}}</span> <span v-html="_formatRefSnippet(ref)" /></span>
+        <div v-if="_exists(declarations)">
+          <div class="refHeading">Declarations</div>
+          <!-- TODO un-copy-paste -->
+          <div v-for="k in _keys(groupedDeclarations)">
+            <div class="refFile">{{k}}</div>
+            <div v-for="ref in _values(groupedDeclarations, k)">
+              <span class="clickableRef" @click="onClick(ref)"><span class="refLine">{{_refVisualLine(ref)}}</span> <span v-html="_formatRefSnippet(ref)" /></span>
+            </div>
           </div>
-        </div>
-      </div>
-
-        Definition:
-        <div v-for="k in _keys(groupedDefinitions)">
-          {{k}}
-          <div v-for="ref in _values(groupedDefinitions, k)">
-            <span class="clickableRef" @click="onClick(ref)"><span class="refLine">{{_refVisualLine(ref)}}</span> <span v-html="_formatRefSnippet(ref)" /></span>
-          </div>
+          <div class="sectionSpacer"/>
         </div>
 
-        Ref count: {{ refCount }}
+        <div v-if="_exists(definitions)">
+          <div class="refHeading">Definition</div>
+          <div v-for="k in _keys(groupedDefinitions)">
+            <div class="refFile">{{k}}</div>
+            <div v-for="ref in _values(groupedDefinitions, k)">
+              <span class="clickableRef" @click="onClick(ref)"><span class="refLine">{{_refVisualLine(ref)}}</span> <span v-html="_formatRefSnippet(ref)" /></span>
+            </div>
+          </div>
+          <div class="sectionSpacer"/>
+        </div>
+
+        <div class="refHeading">References ({{ refCount }})</div>
         <div v-for="k in _keys(groupedRefs)">
-          {{k}}
+          <div class="refFile">
+            <LangIcon :for-file="k" />
+            {{k}}
+          </div>
           <div v-for="ref in _values(groupedRefs, k)">
             <span class="clickableRef" @click="onClick(ref)"><span class="refLine">{{_refVisualLine(ref)}}</span> <span v-html="_formatRefSnippet(ref)" /></span>
           </div>
@@ -43,6 +51,8 @@ import 'codemirror/lib/codemirror.css';
 import 'codemirror/addon/runmode/runmode.js';
 import 'codemirror/mode/go/go.js';
 
+import LangIcon from './LangIcon.vue';
+
 // TODO un-singleton
 let state = {
   canceller: null,
@@ -53,6 +63,9 @@ export default {
     ticket: String,
     highlightMode: String,
     highlightStyle: String,
+  },
+  components: {
+    LangIcon
   },
   data () {
     return {
@@ -69,15 +82,15 @@ export default {
   },
   computed: {
     groupedRefs () {
-      return _.mapValues(_.groupBy(this.refs, r => r.sFileTicket),
+      return _.mapValues(_.groupBy(this.refs, r => r.sDisplayName),
         vs => _.sortBy(vs, v => this._refVisualLine(v)));
     },
     groupedDefinitions () {
-      return _.mapValues(_.groupBy(this.definitions, r => r.sFileTicket),
+      return _.mapValues(_.groupBy(this.definitions, r => r.sDisplayName),
         vs => _.sortBy(vs, v => this._refVisualLine(v)));
     },
     groupedDeclarations () {
-      return _.mapValues(_.groupBy(this.declarations, r => r.sFileTicket),
+      return _.mapValues(_.groupBy(this.declarations, r => r.sDisplayName),
         vs => _.sortBy(vs, v => this._refVisualLine(v)));
     },
   },
@@ -90,6 +103,9 @@ export default {
           line: this._refVisualLine(r),
         },
       });
+    },
+    _exists(v) {
+      return v != null && (v.length == undefined || v.length > 0);
     },
     _keys(o) {
       return _.keys(o);
@@ -171,6 +187,9 @@ export default {
 </script>
 
 <style>
+.sectionSpacer {
+  margin-bottom: 5px;
+}
 .refPanelHighlight {
   font-weight: bold;
   text-decoration: underline dotted;
@@ -183,9 +202,19 @@ export default {
 }
 .refLine {
   color: grey;
-  margin-left: 10px;
+  margin-left: 0px;
 }
 .refLine::after {
   content: ':';
+}
+.refHeading {
+  background: #d8d8d8;
+}
+.refFile {
+  margin-top: 3px;
+  color: #444;
+}
+.tinyIcon {
+  height: 12px;
 }
 </style>

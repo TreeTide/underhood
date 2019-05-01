@@ -35,6 +35,7 @@ module TreeTide.UnderHood.KytheApi
     --
     , Corpus(..)
     , Root(..)
+    , Path(..)
     , KytheUri(..)
     , Location(..)
     , Reference(..)
@@ -73,13 +74,16 @@ newtype Corpus = Corpus { unCorpus :: Text }
 newtype Root = Root { unRoot :: Text }
     deriving (Eq, Ord, Show, Generic)
 
+newtype Path = Path { unPath :: Text }
+    deriving (Eq, Ord, Show, Generic)
+
 type DirectoryApi
     = "dir" :> ReqBody '[JSON] DirectoryRequest :> Get '[JSON] DirectoryReply
 
 data DirectoryRequest = DirectoryRequest
     { corpus'DirReq :: Corpus
     , root'DirReq :: Maybe Root
-    , path'DirReq :: Maybe Text
+    , path'DirReq :: Maybe Path
     }
     deriving (Eq, Ord, Show, Generic)
 
@@ -435,6 +439,9 @@ instance ToJSON Corpus
 instance ToJSON Root
   where
     toJSON = genericToJSON newtypeOptions
+instance ToJSON Path
+  where
+    toJSON = genericToJSON newtypeOptions
 instance ToJSON KytheUri
   where
     toJSON = genericToJSON newtypeOptions
@@ -446,6 +453,9 @@ instance FromJSON Corpus
   where
     parseJSON = genericParseJSON newtypeOptions
 instance FromJSON Root
+  where
+    parseJSON = genericParseJSON newtypeOptions
+instance FromJSON Path
   where
     parseJSON = genericParseJSON newtypeOptions
 instance FromJSON KytheUri
