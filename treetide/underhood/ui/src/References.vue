@@ -58,6 +58,10 @@ let state = {
   canceller: null,
 };
 
+function siteDisplayName(s) {
+  return s.sContainingFile.dfDisplayName;
+}
+
 export default {
   props: {
     ticket: String,
@@ -82,15 +86,15 @@ export default {
   },
   computed: {
     groupedRefs () {
-      return _.mapValues(_.groupBy(this.refs, r => r.sDisplayName),
+      return _.mapValues(_.groupBy(this.refs, siteDisplayName),
         vs => _.sortBy(vs, v => this._refVisualLine(v)));
     },
     groupedDefinitions () {
-      return _.mapValues(_.groupBy(this.definitions, r => r.sDisplayName),
+      return _.mapValues(_.groupBy(this.definitions, siteDisplayName),
         vs => _.sortBy(vs, v => this._refVisualLine(v)));
     },
     groupedDeclarations () {
-      return _.mapValues(_.groupBy(this.declarations, r => r.sDisplayName),
+      return _.mapValues(_.groupBy(this.declarations, siteDisplayName),
         vs => _.sortBy(vs, v => this._refVisualLine(v)));
     },
   },
@@ -99,7 +103,7 @@ export default {
       this.$router.push({
         name: 'file',
         params: {
-          ticket: r.sFileTicket,
+          ticket: r.sContainingFile.dfFileTicket,
           line: this._refVisualLine(r),
         },
       });
@@ -122,13 +126,15 @@ export default {
       return `<span class="cm-s-${this.highlightStyle}">${res}</span>`;
     },
     _refVisualLine(r) {
-      return r.sSnippetSpan.from.line + 1;
+      return r.sSnippet.snippetOccurrenceSpan.from.line + 1;
     },
     _formatRefSnippet(r) {
       // TODO only if single-line span.. or preprocess this on server-side.
-      const subStart = r.sSpan.from.ch - r.sSnippetSpan.from.ch;
-      const subEnd = r.sSpan.to.ch - r.sSnippetSpan.from.ch;
-      const t = r.sSnippet;
+      const fullSpan = r.sSnippet.snippetFullSpan;
+      const snippetSpan = r.sSnippet.snippetOccurrenceSpan;
+      const subStart = snippetSpan.from.ch - fullSpan.from.ch;
+      const subEnd = snippetSpan.to.ch - fullSpan.from.ch;
+      const t = r.sSnippet.snippetText;
       const trimmed = _.trimStart(t);
       const pad = t.length - trimmed.length;
       const begin = t.substring(0, pad);
