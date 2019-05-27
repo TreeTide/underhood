@@ -32,7 +32,7 @@ import           Servant.Client                 ( ClientM
                                                 , BaseUrl(..)
                                                 , Scheme(Http)
                                                 )
--- import           Text.Groom (groom)
+import           Text.Groom                     ( groom )
 import           Text.Show.Deriving             ( deriveShow1 )
 
 import qualified Options.Applicative.Extended  as O
@@ -112,7 +112,7 @@ subtree dn req = do
 isGenerated :: K.KytheUri -> Bool
 isGenerated uri =
     let r = K.unRoot <$> (K.crpRoot <=< K.kytheUriToParts) uri
-                -- TODO this is hard-coded, use a more general config.
+                    -- TODO this is hard-coded, use a more general config.
     in  maybe False ("bazel-out" `T.isPrefixOf`) r
 
 transcodeFileTree :: FileTree -> Api.Subtree
@@ -260,9 +260,12 @@ server opts manager' =
         Nothing ->
             return . Left $ err503 { errBody = "Missing query parameter." }
         Just rawTicket -> do
-            let req = def { K.ticket'CRReq = [K.KytheUri rawTicket] }
+            let req = def { K.ticket'CRReq         = [K.KytheUri rawTicket]
+                          , K.caller_kind'CRReq    = K.DIRECT_CALLERS
+                          , K.reference_kind'CRReq = K.ALL_REFERENCES
+                          }
             res <- runClientM (getCrossReferences req) clientEnv
-            -- putStrLn (groom res)
+            putStrLn (groom res)
             return
                 $! bimap
                        (\e -> err503 { errBody = "Couldn't find xref " <> show e
@@ -273,36 +276,64 @@ server opts manager' =
 
 transcodeXRef :: K.CrossReferencesReply -> Api.XRefReply
 transcodeXRef rep =
-    let cnt =
-                fromMaybe 0
-                    . ((readMaybe . toS) <=< K.references'Total <=< K.total'CRRep)
-                    $ rep
+    let
         onlyElem = (head . M.elems) =<< K.cross_references'CRRep rep
-        getRel   = mapMaybe (anchorToSite <=< K.anchor'RA) . relFor onlyElem
-    in  Api.XRefReply { Api.refs         = getRel K.reference'CRS
-                      , Api.refCount     = cnt
-                      , Api.definitions  = getRel K.definition'CRS
-                      , Api.declarations = getRel K.declaration'CRS
+        getSites =
+            mapMaybe (anchorToSite <=< K.anchor'RA) . relatedAnchorFor onlyElem
+        callContexts =
+            mapMaybe relatedAnchorToCallContext
+                . relatedAnchorFor onlyElem
+                $ K.caller'CRS
+    in
+        Api.XRefReply { Api.refs         = getSites K.reference'CRS
+                      , Api.refCount     = getCount K.references'Total
+                      , Api.calls        = callContexts
+                      , Api.callCount    = getCount K.callers'Total
+                      , Api.definitions  = getSites K.definition'CRS
+                      , Api.declarations = getSites K.declaration'CRS
                       }
   where
-    relFor mbCRS selector = unMaybeList (mbCRS >>= selector)
+    getCount :: (K.Total -> Maybe Text) -> Int
+    getCount selector =
+        fromMaybe 0 . ((readMaybe . toS) <=< selector <=< K.total'CRRep) $ rep
     --
-    anchorToSite :: K.Anchor -> Maybe Api.Site
-    anchorToSite a =
-        Api.Site
+    relatedAnchorFor
+        :: Maybe K.CrossReferenceSet
+        -> (K.CrossReferenceSet -> Maybe [a])
+        -> [a]
+    relatedAnchorFor s selector = unMaybeList (s >>= selector)
+    --
+    anchorToDisplayFile :: K.Anchor -> Maybe Api.DisplayedFile
+    anchorToDisplayFile a =
+        Api.DisplayedFile
             <$> (K.unKytheUri <$> K.parent'A a)
             <*> (formatDisplayedPath <$> (K.kytheUriToParts <=< K.parent'A) a)
-            <*> K.snippet'A a
-            <*> (span2range <$> K.snippet_span'A a)
-            <*> (span2range <$> K.span'A a)
       where
         formatDisplayedPath :: K.CorpusRootPath -> Text
-        formatDisplayedPath (K.CorpusRootPath c r p) = mconcat . map mb2e $
-          [ (<> "/") . K.unCorpus <$> c
-          , (<> "/") . K.unRoot <$> r
-          , K.unPath <$> p
-          ]
-          where mb2e = fromMaybe ""
+        formatDisplayedPath (K.CorpusRootPath c r p) =
+            mconcat
+                . catMaybes
+                $ [ (<> "/") . K.unCorpus <$> c
+                  , (<> "/") . K.unRoot <$> r
+                  , K.unPath <$> p
+                  ]
+    --
+    anchorToSnippet :: K.Anchor -> Maybe Api.Snippet
+    anchorToSnippet a =
+        Api.Snippet
+            <$> K.snippet'A a
+            <*> (span2range <$> K.snippet_span'A a)
+            <*> (span2range <$> K.span'A a)
+    --
+    anchorToSite :: K.Anchor -> Maybe Api.Site
+    anchorToSite a = Api.Site <$> anchorToDisplayFile a <*> anchorToSnippet a
+    --
+    relatedAnchorToCallContext :: K.RelatedAnchor -> Maybe Api.CallContext
+    relatedAnchorToCallContext ra =
+        Api.CallContext
+            <$> (anchorToSite =<< K.anchor'RA ra)
+            <*> (K.unKytheUri <$> K.ticket'RA ra)
+            <*> pure (mapMaybe anchorToSnippet . unMaybeList . K.site'RA $ ra)
 
 transcodeDoc :: K.DocumentationReply -> Api.DocReply
 transcodeDoc rep =

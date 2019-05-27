@@ -8,6 +8,9 @@ module TreeTide.UnderHood.FrontendApi
     ( XRefApi
     , XRefReply(..)
     , Site(..)
+    , CallContext(..)
+    , DisplayedFile(..)
+    , Snippet(..)
     --
     , FileTreeApi
     , Subtree(..)
@@ -125,19 +128,57 @@ type XRefApi = "xref"
 
 data XRefReply = XRefReply
     { refs :: [Site]
+      -- ^ Current page of references.
     , refCount :: Int
+      -- ^ Total (maybe approximate) count of refs.
+    , calls :: [CallContext]
+      -- ^ Current page of call contexts.
+    , callCount :: Int
+      -- ^ Total (maybe approximate) count of call-contexts.
     , definitions :: [Site]
     , declarations :: [Site]
     }
     deriving (Eq, Ord, Show, Generic, FromJSON, ToJSON)
 
--- TODO caller fn for calls
+-- | Info about source-code occurrence of some entity.
+-- The occurrence can be usage, definition or declaration (to name some).
 data Site = Site
-    { sFileTicket :: Text
-    , sDisplayName :: Text
-    , sSnippet :: Text
-    , sSnippetSpan :: CmRange
-    , sSpan :: CmRange
+    { sContainingFile :: DisplayedFile
+      -- ^ The containing file, can be used to show and navigate there.
+    , sSnippet :: Snippet
+      -- ^ How the entity is used.
+    }
+    deriving (Eq, Ord, Show, Generic, FromJSON, ToJSON)
+
+data CallContext = CallContext
+    { ccContextSite :: Site
+      -- ^ Info about the calling context (for example function definition).
+    , ccContextTicket :: Text
+      -- ^ Can chain callsite lookup using this ticket.
+    , ccSites :: [Snippet]
+      -- ^ Snippets about usage within the context.
+    }
+    deriving (Eq, Ord, Show, Generic, FromJSON, ToJSON)
+
+-- | File to be displayed on the UI.
+data DisplayedFile = DisplayedFile
+    { dfFileTicket :: Text
+      -- ^ Ticket of the file.
+    , dfDisplayName :: Text
+      -- ^ How should the filename be displayed.
+    }
+    deriving (Eq, Ord, Show, Generic, FromJSON, ToJSON)
+
+-- | Contains the snippet of the source code where an entity occurs.
+data Snippet = Snippet
+    { snippetText :: Text
+      -- ^ The snippet itself, containing the usage occurrence.
+      -- Could be multiline, but in practice it is not.
+    , snippetFullSpan :: CmRange
+      -- ^ The full span of the given snippet.
+    , snippetOccurrenceSpan :: CmRange
+      -- ^ The span of the occurrence (falls within the snippet's span).
+      -- Can be used for highlighting it.
     }
     deriving (Eq, Ord, Show, Generic, FromJSON, ToJSON)
 

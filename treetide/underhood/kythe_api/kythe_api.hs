@@ -27,6 +27,9 @@ module TreeTide.UnderHood.KytheApi
     --
     , CrossReferencesApi
     , CrossReferencesRequest(..)
+    , CallerKind(..)
+    , DeclarationKind(..)
+    , ReferenceKind(..)
     , CrossReferencesReply(..)
     , CrossReferenceSet(..)
     , Total(..)
@@ -280,14 +283,19 @@ data CrossReferenceSet = CrossReferenceSet
 
 data RelatedAnchor = RelatedAnchor
     { anchor'RA :: Maybe Anchor
+      -- ^ For reference, the referring anchor.
+      -- For calls, the anchor of the call context.
     -- TODO marked_source
     , site'RA :: Maybe [Anchor]
+      -- ^ For calls, the anchor of usages within the context.
     , ticket'RA :: Maybe KytheUri
+      -- ^ For calls, the ticket of the call context (for example function).
+      -- Can be used for chained caller calls.
     }
     deriving (Eq, Ord, Show, Generic)
 
 data Anchor = Anchor
-    { ticket'A :: KytheUri
+    { ticket'A :: Maybe KytheUri  -- ^ Can be missing in RelatedAnchor's anchor?
     , kind'A :: Maybe Text
     , parent'A :: Maybe KytheUri
     , span'A :: Maybe Span
