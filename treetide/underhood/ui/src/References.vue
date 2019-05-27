@@ -25,6 +25,17 @@
           <div class="sectionSpacer"/>
         </div>
 
+        <div class="refHeading">Callers ({{ callCount }})</div>
+        <div v-for="fk in _keys(groupedCalls)">
+          <div class="refFile">
+            <LangIcon :for-file="fk" />
+            {{fk}}
+          </div>
+          <div v-for="cc in _values(groupedCalls, fk)">
+            <span class="clickableRef" @click="onClick(cc.ccContextSite)"><span class="refLine">{{_refVisualLine(cc.ccContextSite)}}</span> <span v-html="_formatRefSnippet(cc.ccContextSite)" /></span>
+          </div>
+        </div>
+
         <div class="refHeading">References ({{ refCount }})</div>
         <div v-for="k in _keys(groupedRefs)">
           <div class="refFile">
@@ -35,6 +46,7 @@
             <span class="clickableRef" @click="onClick(ref)"><span class="refLine">{{_refVisualLine(ref)}}</span> <span v-html="_formatRefSnippet(ref)" /></span>
           </div>
         </div>
+
       </div>
       <div v-else>
         Loading refs..
@@ -74,7 +86,9 @@ export default {
   data () {
     return {
       refCount: 0,
+      callCount: 0,
       refs: [],
+      calls: [],
       definitions: [],
       declarations: [],
       // Number of outstanding requests.
@@ -85,6 +99,9 @@ export default {
     }
   },
   computed: {
+    groupedCalls() {
+        return _.groupBy(this.calls, c => c.ccContextSite.sContainingFile.dfFileTicket);
+    },
     groupedRefs () {
       return _.mapValues(_.groupBy(this.refs, siteDisplayName),
         vs => _.sortBy(vs, v => this._refVisualLine(v)));
@@ -167,7 +184,9 @@ export default {
       })
         .then(response => {
           this.refCount = response.data.refCount;
+          this.callCount = response.data.callCount;
           this.refs = response.data.refs;
+          this.calls = response.data.calls;
           this.definitions = response.data.definitions;
           this.declarations = response.data.declarations;
         })
