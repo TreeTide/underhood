@@ -180,7 +180,7 @@ server opts manager' =
                         --(map (map transcodeFileTree))
                 (mergeTrees . map transcodeFileTree . concat)
                 res
-        -- putStrLn (groom treeRes)
+        putStrLn (groom treeRes)
         return $! treeRes
     --
     serveSource :: Server Api.SourceApi
@@ -197,8 +197,9 @@ server opts manager' =
                                 }
                         , K.source_text'DecReq = Just True
                         }
+                print ("Getting sources" :: Text, req)
                 res <- runClientM (getDecorations req) clientEnv
-                -- putStrLn (groom res)
+                putStrLn (groom res)
                 return
                     $! bimap
                            (const err503 { errBody = "Couldn't get source." })
@@ -229,8 +230,9 @@ server opts manager' =
                         K.Location { K.ticket'L = Just (K.KytheUri rawTicket) }
                     , K.references'DecReq = Just True
                     }
+            print ("Getting decors" :: Text, req)
             res <- runClientM (getDecorations req) clientEnv
-            -- putStrLn (groom res)
+            putStrLn (groom res)
             return
                 $! bimap
                        (const err503 { errBody = "Couldn't get internal refs." }
@@ -264,6 +266,7 @@ server opts manager' =
                           , K.caller_kind'CRReq    = K.DIRECT_CALLERS
                           , K.reference_kind'CRReq = K.ALL_REFERENCES
                           }
+            print ("Getting xref" :: Text, req)
             res <- runClientM (getCrossReferences req) clientEnv
             putStrLn (groom res)
             return
