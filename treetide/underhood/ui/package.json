@@ -33,7 +33,7 @@
     "jquery2": "^2.0.3-a",
     "jss": "^10.0.0-alpha.3",
     "jss-preset-default": "^10.0.0-alpha.7",
-    "lodash": "^4.17.11",
+    "lodash": "^4.17.13",
     "normalize.css": "^8.0.1",
     "vue": "^2.5.22",
     "vue-codemirror": "^4.0.6",
