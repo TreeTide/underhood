@@ -1,156 +1,156 @@
 package(default_visibility = ["//visibility:public"])
 
 load(
-    "@io_tweag_rules_haskell//haskell:haskell.bzl",
-    "haskell_import",
+    "@rules_haskell//haskell:defs.bzl",
+    "haskell_toolchain_library",
 )
 
 # Expand below list on-demand. Need to add to //:ghc.nix as well.
 
 # GHC-bundled libraries
-haskell_import(name = "base")
+haskell_toolchain_library(name = "base")
 
-haskell_import(name = "bytestring")
+haskell_toolchain_library(name = "bytestring")
 
-haskell_import(name = "clock")
+haskell_toolchain_library(name = "clock")
 
-haskell_import(name = "containers")
+haskell_toolchain_library(name = "containers")
 
-haskell_import(name = "criterion")
+haskell_toolchain_library(name = "criterion")
 
-haskell_import(name = "mtl")
+haskell_toolchain_library(name = "mtl")
 
-haskell_import(name = "text")
+haskell_toolchain_library(name = "text")
 
-haskell_import(name = "time")
+haskell_toolchain_library(name = "time")
 
-haskell_import(name = "transformers")
+haskell_toolchain_library(name = "transformers")
 
 # Non-GHC-bundled libraries
-haskell_import(name = "aeson")
+haskell_toolchain_library(name = "aeson")
 
-haskell_import(name = "align")
+haskell_toolchain_library(name = "align")
 
-haskell_import(name = "async")
+haskell_toolchain_library(name = "async")
 
-haskell_import(name = "base64-bytestring")
+haskell_toolchain_library(name = "base64-bytestring")
 
-haskell_import(name = "boxes")
+haskell_toolchain_library(name = "boxes")
 
-haskell_import(name = "conduit")
+haskell_toolchain_library(name = "conduit")
 
-haskell_import(name = "cookie")
+haskell_toolchain_library(name = "cookie")
 
-haskell_import(name = "cryptonite")
+haskell_toolchain_library(name = "cryptonite")
 
-haskell_import(name = "data-default")
+haskell_toolchain_library(name = "data-default")
 
-haskell_import(name = "deriving-compat")
+haskell_toolchain_library(name = "deriving-compat")
 
 # Can have problems with large dir listings. Prefer variant from
 # streaming-commons, or its conduit equivalent.
 #
 # Note that streaming one yields dirs only in random order.
-haskell_import(name = "directory")
+haskell_toolchain_library(name = "directory")
 
 # For working with legacy stuff only!
 # Prefer 'safe-exceptions' or 'unliftio' rather.
-haskell_import(name = "exceptions")
+haskell_toolchain_library(name = "exceptions")
 
-haskell_import(name = "fast-logger")
+haskell_toolchain_library(name = "fast-logger")
 
-haskell_import(name = "free")
+haskell_toolchain_library(name = "free")
 
-haskell_import(name = "errors")
+haskell_toolchain_library(name = "errors")
 
-haskell_import(name = "groom")
+haskell_toolchain_library(name = "groom")
 
-haskell_import(name = "hedgehog")
+haskell_toolchain_library(name = "hedgehog")
 
-haskell_import(name = "HTTP")
+haskell_toolchain_library(name = "HTTP")
 
-haskell_import(name = "html-conduit")
+haskell_toolchain_library(name = "html-conduit")
 
-haskell_import(name = "http-api-data")
+haskell_toolchain_library(name = "http-api-data")
 
-haskell_import(name = "http-client")
+haskell_toolchain_library(name = "http-client")
 
-haskell_import(name = "http-types")
+haskell_toolchain_library(name = "http-types")
 
-haskell_import(name = "lens")
+haskell_toolchain_library(name = "lens")
 
-haskell_import(name = "neat-interpolation")
+haskell_toolchain_library(name = "neat-interpolation")
 
-haskell_import(name = "network")
+haskell_toolchain_library(name = "network")
 
-haskell_import(name = "network-uri")
+haskell_toolchain_library(name = "network-uri")
 
-haskell_import(name = "optparse-applicative")
+haskell_toolchain_library(name = "optparse-applicative")
 
-haskell_import(name = "postgresql-simple")
+haskell_toolchain_library(name = "postgresql-simple")
 
-haskell_import(name = "protolude")
+haskell_toolchain_library(name = "protolude")
 
-haskell_import(name = "prometheus-client")
+haskell_toolchain_library(name = "prometheus-client")
 
-haskell_import(name = "prometheus-metrics-ghc")
+haskell_toolchain_library(name = "prometheus-metrics-ghc")
 
-haskell_import(name = "recursion-schemes")
+haskell_toolchain_library(name = "recursion-schemes")
 
-haskell_import(name = "resourcet")
+haskell_toolchain_library(name = "resourcet")
 
 # See https://www.fpcomplete.com/blog/2018/04/async-exception-handling-haskell.
 # For new code consider using 'unliftio'.
 # For legacy third-party code might need to use 'exceptions'.
-haskell_import(name = "safe-exceptions")
+haskell_toolchain_library(name = "safe-exceptions")
 
 # For quick one-shot stuff. Prefer 'servant' for more complicated or production
 # things.
-haskell_import(name = "scotty")
+haskell_toolchain_library(name = "scotty")
 
-haskell_import(name = "servant")
+haskell_toolchain_library(name = "servant")
 
-haskell_import(name = "servant-client")
+haskell_toolchain_library(name = "servant-client")
 
-haskell_import(name = "servant-server")
+haskell_toolchain_library(name = "servant-server")
 
-haskell_import(name = "split")
+haskell_toolchain_library(name = "split")
 
-haskell_import(name = "stm-conduit")
+haskell_toolchain_library(name = "stm-conduit")
 
-haskell_import(name = "tagsoup")
+haskell_toolchain_library(name = "tagsoup")
 
-haskell_import(name = "tasty")
+haskell_toolchain_library(name = "tasty")
 
-haskell_import(name = "tasty-hedgehog")
+haskell_toolchain_library(name = "tasty-hedgehog")
 
-haskell_import(name = "tasty-hunit")
+haskell_toolchain_library(name = "tasty-hunit")
 
-haskell_import(name = "tasty-silver")
+haskell_toolchain_library(name = "tasty-silver")
 
-haskell_import(name = "text-format")
+haskell_toolchain_library(name = "text-format")
 
-haskell_import(name = "text-icu")
+haskell_toolchain_library(name = "text-icu")
 
-haskell_import(name = "unix")
+haskell_toolchain_library(name = "unix")
 
-haskell_import(name = "unliftio-core")
+haskell_toolchain_library(name = "unliftio-core")
 
-haskell_import(name = "unliftio")
+haskell_toolchain_library(name = "unliftio")
 
-haskell_import(name = "unordered-containers")
+haskell_toolchain_library(name = "unordered-containers")
 
-haskell_import(name = "vector")
+haskell_toolchain_library(name = "vector")
 
-haskell_import(name = "wai")
+haskell_toolchain_library(name = "wai")
 
-haskell_import(name = "wai-middleware-prometheus")
+haskell_toolchain_library(name = "wai-middleware-prometheus")
 
-haskell_import(name = "warp")
+haskell_toolchain_library(name = "warp")
 
 # Easy-to-use HTTP client lib.
-haskell_import(name = "wreq")
+haskell_toolchain_library(name = "wreq")
 
 # Pretty unpenetrable streaming combinators, resort to DOM (Cursor) usage.
 # Might use hexml instead? Could research.
-haskell_import(name = "xml-conduit")
+haskell_toolchain_library(name = "xml-conduit")

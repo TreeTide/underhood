@@ -3,8 +3,8 @@
     "owner": "NixOS",
     "repo": "nixpkgs-channels",
     "branch": "nixos-unstable",
-    "rev": "b75eab88bde1b13cbe83d25b477d83eaf811e0cf",
-    "sha256": "00bzwm3qyqqz0h4k6jm8xgnbwyhv128p1zrskykzchfkdqi6lmw9"
+    "rev": "e1eedf29e5d22e6824e614d75449b75a2e3455d6",
+    "sha256": "1v237cgfkd8sb5f1r08sms1rxygjav8a1i1jjjxyqgiszzpiwdx7"
   },
   "nixNpmBuildpackage": {
     "owner": "serokell",
