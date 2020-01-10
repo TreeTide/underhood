@@ -180,14 +180,16 @@ function chooseDecorStrategy(ds) {
   let res = null;
   for (let i in ds) {
     let span = ds[i].dSpan;
-    if (span && span < mn) {
+    // HACK note: we should check the edge type, and choose based on that.
+    // Or display a multi-edge menu.
+    if (span && span <= mn) {  // HACKed to choose last edge (what is that?)
       mn = span;
       res = ds[i];
     }
   }
   if (res) return res;
   // Fallback.
-  if (ds.length) return ds[0];
+  if (ds.length) return ds[ds.length-1];  // HACK, should choose based on edge
   return null;
 }
 
@@ -215,12 +217,13 @@ export default {
       refTicket: null,
       cmOptions: {
         mode: 'go',
+        undoDepth: 0,
         lineNumbers: true,
         theme: 'solarized',
         // TODO: with Infinitiy, full-page-search works, but rendering and
         //   adding xrefs to big docs gets slow. We should add our own search,
         //   then can ditch Infitity, so we get speedup.
-        viewportMargin: Infinity,
+        viewportMargin: 10,  // Infinity,
         readOnly: true,
         cursorBlinkRate: -1,
       },
@@ -406,9 +409,10 @@ export default {
       };
       go();
     },
-    __render() {
+    __render: _.debounce(function() {
+      // Debounced so different param changes observe only 1 reload.
       this._loadSource(this.ticket, this.line);
-    },
+    }, 5),
   },
   computed: {
     mkNavBus () {

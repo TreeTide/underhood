@@ -25,6 +25,17 @@
           <div class="sectionSpacer"/>
         </div>
 
+        <div class="refHeading">Callers ({{ callCount }})</div>
+        <div v-for="fk in _keys(groupedCalls)">
+          <div class="refFile">
+            <LangIcon :for-file="fk" />
+            {{fk}}
+          </div>
+          <div v-for="cc in _values(groupedCalls, fk)">
+            <span class="clickableRef" @click="onClick(cc.ccContextSite)"><span class="refLine">{{_refVisualLine(cc.ccContextSite)}}</span> <span v-html="_formatRefSnippet(cc.ccContextSite)" /></span>
+          </div>
+        </div>
+
         <div class="refHeading">References ({{ refCount }})</div>
         <div v-for="k in _keys(groupedRefs)">
           <div class="refFile">
@@ -35,6 +46,7 @@
             <span class="clickableRef" @click="onClick(ref)"><span class="refLine">{{_refVisualLine(ref)}}</span> <span v-html="_formatRefSnippet(ref)" /></span>
           </div>
         </div>
+
       </div>
       <div v-else>
         Loading refs..
@@ -58,6 +70,10 @@ let state = {
   canceller: null,
 };
 
+function siteDisplayName(s) {
+  return s.sContainingFile.dfDisplayName;
+}
+
 export default {
   props: {
     ticket: String,
@@ -70,7 +86,9 @@ export default {
   data () {
     return {
       refCount: 0,
+      callCount: 0,
       refs: [],
+      calls: [],
       definitions: [],
       declarations: [],
       // Number of outstanding requests.
@@ -81,16 +99,19 @@ export default {
     }
   },
   computed: {
+    groupedCalls() {
+        return _.groupBy(this.calls, c => c.ccContextSite.sContainingFile.dfFileTicket);
+    },
     groupedRefs () {
-      return _.mapValues(_.groupBy(this.refs, r => r.sDisplayName),
+      return _.mapValues(_.groupBy(this.refs, siteDisplayName),
         vs => _.sortBy(vs, v => this._refVisualLine(v)));
     },
     groupedDefinitions () {
-      return _.mapValues(_.groupBy(this.definitions, r => r.sDisplayName),
+      return _.mapValues(_.groupBy(this.definitions, siteDisplayName),
         vs => _.sortBy(vs, v => this._refVisualLine(v)));
     },
     groupedDeclarations () {
-      return _.mapValues(_.groupBy(this.declarations, r => r.sDisplayName),
+      return _.mapValues(_.groupBy(this.declarations, siteDisplayName),
         vs => _.sortBy(vs, v => this._refVisualLine(v)));
     },
   },
@@ -99,7 +120,7 @@ export default {
       this.$router.push({
         name: 'file',
         params: {
-          ticket: r.sFileTicket,
+          ticket: r.sContainingFile.dfFileTicket,
           line: this._refVisualLine(r),
         },
       });
@@ -122,13 +143,15 @@ export default {
       return `<span class="cm-s-${this.highlightStyle}">${res}</span>`;
     },
     _refVisualLine(r) {
-      return r.sSnippetSpan.from.line + 1;
+      return r.sSnippet.snippetOccurrenceSpan.from.line + 1;
     },
     _formatRefSnippet(r) {
       // TODO only if single-line span.. or preprocess this on server-side.
-      const subStart = r.sSpan.from.ch - r.sSnippetSpan.from.ch;
-      const subEnd = r.sSpan.to.ch - r.sSnippetSpan.from.ch;
-      const t = r.sSnippet;
+      const fullSpan = r.sSnippet.snippetFullSpan;
+      const snippetSpan = r.sSnippet.snippetOccurrenceSpan;
+      const subStart = snippetSpan.from.ch - fullSpan.from.ch;
+      const subEnd = snippetSpan.to.ch - fullSpan.from.ch;
+      const t = r.sSnippet.snippetText;
       const trimmed = _.trimStart(t);
       const pad = t.length - trimmed.length;
       const begin = t.substring(0, pad);
@@ -161,7 +184,9 @@ export default {
       })
         .then(response => {
           this.refCount = response.data.refCount;
+          this.callCount = response.data.callCount;
           this.refs = response.data.refs;
+          this.calls = response.data.calls;
           this.definitions = response.data.definitions;
           this.declarations = response.data.declarations;
         })

@@ -8,38 +8,67 @@ load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository")
 #
 
 http_archive(
-    name = "io_tweag_rules_haskell",
-    strip_prefix = "rules_haskell-513b14c0b3ece6d05b159455bb2df7335c759156",
-    urls = ["https://github.com/tweag/rules_haskell/archive/513b14c0b3ece6d05b159455bb2df7335c759156.tar.gz"],
-    sha256 = "c9f0be2ddfc4820d83141e399668f5277dee5ba5e3b7cc6d278e7f116f3568d9",
+    name = "rules_haskell",
+    strip_prefix = "rules_haskell-a3f0cab25c8be147d79dd45d0c9d01390582727b",
+    urls = ["https://github.com/tweag/rules_haskell/archive/a3f0cab25c8be147d79dd45d0c9d01390582727b.tar.gz"],
+    sha256 = "c408b8339f8add9e2d5382b29b371e7f68259b3dd5d163cbf7db4e482c2fff8f",
 )
 
-load("@io_tweag_rules_haskell//haskell:repositories.bzl", "haskell_repositories")
-
-haskell_repositories()
+load("@rules_haskell//haskell:repositories.bzl", "rules_haskell_dependencies")
+rules_haskell_dependencies()
 
 http_archive(
     name = "io_tweag_rules_nixpkgs",
-    strip_prefix = "rules_nixpkgs-0.5.2",
-    urls = ["https://github.com/tweag/rules_nixpkgs/archive/v0.5.2.tar.gz"],
-    sha256 = "5a384daa57b49abf9f0b672852f1a66a3c52aecf9d4d2ac64f6de0fd307690c8",
+    strip_prefix = "rules_nixpkgs-0.6.0",
+    urls = ["https://github.com/tweag/rules_nixpkgs/archive/v0.6.0.tar.gz"],
+    sha256 = "f5af641e16fcff5b24f1a9ba5d93cab5ad26500271df59ede344f1a56fc3b17d",
 )
 
-load("@io_tweag_rules_nixpkgs//nixpkgs:nixpkgs.bzl", "nixpkgs_local_repository", "nixpkgs_package")
+load("@io_tweag_rules_nixpkgs//nixpkgs:nixpkgs.bzl", "nixpkgs_local_repository", "nixpkgs_package", "nixpkgs_python_configure")
 
 nixpkgs_local_repository(
     name = "nixpkgs",
     nix_file = "//nix:nixpkgs.nix",
 )
 
-nixpkgs_package(
-    name = "ghc",
-    build_file = "@io_tweag_rules_haskell//haskell:ghc.BUILD",
-    nix_file = "//:ghc.nix",
-    repositories = {"nixpkgs": "@nixpkgs//:nixpkgs.nix"},
+load("@rules_haskell//haskell:nixpkgs.bzl", "haskell_register_ghc_nixpkgs")
+haskell_register_ghc_nixpkgs(
+    #locale_archive = "@glibc_locales//:locale-archive",
+    attribute_path = "ghc",
+    repositories = {
+        "ghc": "@//:ghc.nix",
+    },
+    nix_file_content = '{ghc = import <ghc>;}',
+    compiler_flags =
+        [
+            "-threaded",  # Use multicore runtime
+            "-rtsopts",   # Enable specifying runtime options on command line.
+
+            # Set default RTS options.
+            # -maxN<X>: use up to X cores if available.
+            # -qn4: only use 4 cores for parallel GC.
+            # -A64m: use larger allocation area.
+            # -n4m: use allocation chunks, which can be beneficial on multicore.
+            # See https://simonmar.github.io/posts/2015-07-28-optimising-garbage-collection-overhead-in-sigma.html.
+            # -T: make gc stats available in-program
+            # -s: print summary GC statistics to stderr on exit.
+            "-with-rtsopts=-maxN8 -qn4 -A64m -n4m -T -s",
+
+            # Switch on useful extra warnings, and make warnings compilation
+            # error.
+            "-Wall",
+            "-Werror",
+            "-Wcompat",
+            "-Wincomplete-record-updates",
+            "-Wincomplete-uni-patterns",
+            "-Wredundant-constraints",
+        ],
+    version = "8.6.5",
 )
 
-register_toolchains("//:ghc")
+# Note: will move to toolchains.bzl in HEAD
+load("@rules_haskell//haskell:repositories.bzl", "rules_haskell_toolchains")
+rules_haskell_toolchains(version = "8.6.5")
 
 #
 # Go & Buildifier
@@ -49,11 +78,14 @@ register_toolchains("//:ghc")
 # See https://github.com/bazelbuild/rules_go for the up to date setup instructions.
 http_archive(
     name = "io_bazel_rules_go",
-    sha256 = "f87fa87475ea107b3c69196f39c82b7bbf58fe27c62a338684c20ca17d1d8613",
-    url = "https://github.com/bazelbuild/rules_go/releases/download/0.16.2/rules_go-0.16.2.tar.gz",
+    urls = [
+      "https://storage.googleapis.com/bazel-mirror/github.com/bazelbuild/rules_go/releases/download/v0.20.3/rules_go-v0.20.3.tar.gz",
+      "https://github.com/bazelbuild/rules_go/releases/download/v0.20.3/rules_go-v0.20.3.tar.gz",
+    ],
+    sha256 = "e88471aea3a3a4f19ec1310a55ba94772d087e9ce46e41ae38ecebe17935de7b",
 )
 
-load("@io_bazel_rules_go//go:def.bzl", "go_register_toolchains", "go_rules_dependencies")
+load("@io_bazel_rules_go//go:deps.bzl", "go_rules_dependencies", "go_register_toolchains")
 
 go_rules_dependencies()
 
