@@ -180,14 +180,16 @@ function chooseDecorStrategy(ds) {
   let res = null;
   for (let i in ds) {
     let span = ds[i].dSpan;
-    if (span && span < mn) {
+    // HACK note: we should check the edge type, and choose based on that.
+    // Or display a multi-edge menu.
+    if (span && span <= mn) {  // HACKed to choose last edge (what is that?)
       mn = span;
       res = ds[i];
     }
   }
   if (res) return res;
   // Fallback.
-  if (ds.length) return ds[0];
+  if (ds.length) return ds[ds.length-1];  // HACK, should choose based on edge
   return null;
 }
 
