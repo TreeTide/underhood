@@ -48,7 +48,13 @@ import 'codemirror/theme/monokai.css';
 import 'codemirror/theme/solarized.css';
 import 'codemirror/theme/idea.css';
 //
-//import 'codemirror/addon/search/matchesonscrollbar.js';
+import 'codemirror/addon/dialog/dialog.css';
+import 'codemirror/addon/dialog/dialog.js';
+//
+import 'codemirror/addon/search/search.js';
+import 'codemirror/addon/search/searchcursor.js';
+import 'codemirror/addon/search/jump-to-line.js';
+import 'codemirror/addon/search/matchesonscrollbar.js';
 import 'codemirror/addon/search/matchesonscrollbar.css';
 import 'codemirror/addon/scroll/annotatescrollbar.js';
 //
