@@ -35,8 +35,20 @@
             <FileName :file-path="callDisplayFile(kv)" />
           </div>
           <div v-for="cc in kv.v">
-            <span class="clickableRef" @click="onClick(cc.ccContextSite)"><span class="refLine">{{_refVisualLine(cc.ccContextSite)}}</span> <span v-html="_formatRefSnippet(cc.ccContextSite)" /></span>
+            <div class="clickableRef callContext" @click="onClick(cc.ccContextSite)">
+              <span class="refLine">{{_refVisualLine(cc.ccContextSite)}}</span>
+              <span v-html="_formatRefSnippet(cc.ccContextSite)" /></span>
+            </div>
+            <div v-for="snippet in cc.ccSites">
+              <template v-for="callSite in [synthSite(cc.ccContextSite, snippet)]">
+                <span class="clickableRef" @click="onClick(callSite)">
+                  <span class="refLine">{{_refVisualLine(callSite)}}</span>
+                  <span v-html="_formatRefSnippet(callSite)" /></span>
+                </span>
+              </template>
+            </div>
           </div>
+          <div class="sectionSpacer"/>
         </div>
 
         <div class="refHeading">References ({{ refCount }})</div>
@@ -47,6 +59,7 @@
           <div v-for="ref in kv.v">
             <span class="clickableRef" @click="onClick(ref)"><span class="refLine">{{_refVisualLine(ref)}}</span> <span v-html="_formatRefSnippet(ref)" /></span>
           </div>
+          <div class="sectionSpacer"/>
         </div>
 
       </div>
@@ -128,6 +141,12 @@ export default {
     callDisplayFile(kv) {
       const c = kv.v[0];
       return c.ccContextSite.sContainingFile.dfDisplayName;
+    },
+    synthSite(site, snippet) {
+      return {
+        sContainingFile: site.sContainingFile,
+        sSnippet: snippet,
+      };
     },
 
     onClick(r) {
@@ -251,11 +270,19 @@ export default {
   content: ':';
 }
 .refHeading {
-  background: #d8d8d8;
+  background: #bbd;
+  padding-top: 2px;
+  font-weight: bold;
+  margin-bottom: 2px;
 }
 .refFile {
-  margin-top: 3px;
+  margin-top: 2px;
   color: #444;
+  background: #dde;
+}
+.callContext {
+  margin-top: 2px;
+  background: #eef;
 }
 .tinyIcon {
   height: 12px;
