@@ -5,9 +5,11 @@
         <div v-if="_exists(declarations)">
           <div class="refHeading">Declarations</div>
           <!-- TODO un-copy-paste -->
-          <div v-for="k in _keys(groupedDeclarations)">
-            <div class="refFile">{{k}}</div>
-            <div v-for="ref in _values(groupedDeclarations, k)">
+          <div v-for="kv in _kvs(groupedDeclarations)">
+            <div class="refFile">
+              <FileName :file-path="siteDisplayFile(kv)" />
+            </div>
+            <div v-for="ref in kv.v">
               <span class="clickableRef" @click="onClick(ref)"><span class="refLine">{{_refVisualLine(ref)}}</span> <span v-html="_formatRefSnippet(ref)" /></span>
             </div>
           </div>
@@ -16,9 +18,11 @@
 
         <div v-if="_exists(definitions)">
           <div class="refHeading">Definition</div>
-          <div v-for="k in _keys(groupedDefinitions)">
-            <div class="refFile">{{k}}</div>
-            <div v-for="ref in _values(groupedDefinitions, k)">
+          <div v-for="kv in _kvs(groupedDefinitions)">
+            <div class="refFile">
+              <FileName :file-path="siteDisplayFile(kv)" />
+            </div>
+            <div v-for="ref in kv.v">
               <span class="clickableRef" @click="onClick(ref)"><span class="refLine">{{_refVisualLine(ref)}}</span> <span v-html="_formatRefSnippet(ref)" /></span>
             </div>
           </div>
@@ -26,25 +30,36 @@
         </div>
 
         <div class="refHeading">Callers ({{ callCount }})</div>
-        <div v-for="fk in _keys(groupedCalls)">
+        <div v-for="kv in _kvs(groupedCalls)">
           <div class="refFile">
-            <LangIcon :for-file="fk" />
-            {{fk}}
+            <FileName :file-path="callDisplayFile(kv)" />
           </div>
-          <div v-for="cc in _values(groupedCalls, fk)">
-            <span class="clickableRef" @click="onClick(cc.ccContextSite)"><span class="refLine">{{_refVisualLine(cc.ccContextSite)}}</span> <span v-html="_formatRefSnippet(cc.ccContextSite)" /></span>
+          <div v-for="cc in kv.v">
+            <div class="clickableRef callContext" @click="onClick(cc.ccContextSite)">
+              <span class="refLine">{{_refVisualLine(cc.ccContextSite)}}</span>
+              <span v-html="_formatRefSnippet(cc.ccContextSite)" /></span>
+            </div>
+            <div v-for="snippet in cc.ccSites">
+              <template v-for="callSite in [synthSite(cc.ccContextSite, snippet)]">
+                <span class="clickableRef" @click="onClick(callSite)">
+                  <span class="refLine">{{_refVisualLine(callSite)}}</span>
+                  <span v-html="_formatRefSnippet(callSite)" /></span>
+                </span>
+              </template>
+            </div>
           </div>
+          <div class="sectionSpacer"/>
         </div>
 
         <div class="refHeading">References ({{ refCount }})</div>
-        <div v-for="k in _keys(groupedRefs)">
+        <div v-for="kv in _kvs(groupedRefs)">
           <div class="refFile">
-            <LangIcon :for-file="k" />
-            {{k}}
+            <FileName :file-path="siteDisplayFile(kv)" />
           </div>
-          <div v-for="ref in _values(groupedRefs, k)">
+          <div v-for="ref in kv.v">
             <span class="clickableRef" @click="onClick(ref)"><span class="refLine">{{_refVisualLine(ref)}}</span> <span v-html="_formatRefSnippet(ref)" /></span>
           </div>
+          <div class="sectionSpacer"/>
         </div>
 
       </div>
@@ -63,15 +78,18 @@ import 'codemirror/lib/codemirror.css';
 import 'codemirror/addon/runmode/runmode.js';
 import 'codemirror/mode/go/go.js';
 
-import LangIcon from './LangIcon.vue';
+import FileName from './FileName.vue';
 
 // TODO un-singleton
 let state = {
   canceller: null,
 };
 
-function siteDisplayName(s) {
-  return s.sContainingFile.dfDisplayName;
+// Groups by ticket instead display file name, as in odd cases the name can
+// collide. For example root="",dir="foo/bar" collides with
+// root="foo",dir="bar".
+function siteContainerTicket(s) {
+  return s.sContainingFile.dfFileTicket;
 }
 
 export default {
@@ -81,7 +99,7 @@ export default {
     highlightStyle: String,
   },
   components: {
-    LangIcon
+    FileName
   },
   data () {
     return {
@@ -100,22 +118,37 @@ export default {
   },
   computed: {
     groupedCalls() {
-        return _.groupBy(this.calls, c => c.ccContextSite.sContainingFile.dfFileTicket);
+      return _.groupBy(this.calls, c => siteContainerTicket(c.ccContextSite));
     },
     groupedRefs () {
-      return _.mapValues(_.groupBy(this.refs, siteDisplayName),
+      return _.mapValues(_.groupBy(this.refs, siteContainerTicket),
         vs => _.sortBy(vs, v => this._refVisualLine(v)));
     },
     groupedDefinitions () {
-      return _.mapValues(_.groupBy(this.definitions, siteDisplayName),
+      return _.mapValues(_.groupBy(this.definitions, siteContainerTicket),
         vs => _.sortBy(vs, v => this._refVisualLine(v)));
     },
     groupedDeclarations () {
-      return _.mapValues(_.groupBy(this.declarations, siteDisplayName),
+      return _.mapValues(_.groupBy(this.declarations, siteContainerTicket),
         vs => _.sortBy(vs, v => this._refVisualLine(v)));
     },
   },
   methods: {
+    siteDisplayFile(kv) {
+      const s = kv.v[0];
+      return s.sContainingFile.dfDisplayName;
+    },
+    callDisplayFile(kv) {
+      const c = kv.v[0];
+      return c.ccContextSite.sContainingFile.dfDisplayName;
+    },
+    synthSite(site, snippet) {
+      return {
+        sContainingFile: site.sContainingFile,
+        sSnippet: snippet,
+      };
+    },
+
     onClick(r) {
       this.$router.push({
         name: 'file',
@@ -128,11 +161,15 @@ export default {
     _exists(v) {
       return v != null && (v.length == undefined || v.length > 0);
     },
-    _keys(o) {
-      return _.keys(o);
-    },
-    _values(rs, k) {
-      return rs[k];
+    _kvs(o) {
+      let res = [];
+      for (const k in o) {
+        res.push({
+          k: k,
+          v: o[k]
+        });
+      }
+      return res;
     },
     _highlight(l) {
       const mode = CodeMirror.getMode(CodeMirror.defaults, this.highlightMode);
@@ -233,11 +270,19 @@ export default {
   content: ':';
 }
 .refHeading {
-  background: #d8d8d8;
+  background: #bbd;
+  padding-top: 2px;
+  font-weight: bold;
+  margin-bottom: 2px;
 }
 .refFile {
-  margin-top: 3px;
+  margin-top: 2px;
   color: #444;
+  background: #dde;
+}
+.callContext {
+  margin-top: 2px;
+  background: #eef;
 }
 .tinyIcon {
   height: 12px;
