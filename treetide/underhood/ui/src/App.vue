@@ -1,39 +1,39 @@
 <template>
   <div class="app">
-    <div class="vertical">
-      <div class="top_panel">
-        CodeUnderHood code browser by robinp@treetide.com.
-        Sign up for updates at <a href="https://treetide.com">treetide.com</a>.
-      </div>
-      <div class="horizontal">
-        <div class="filetree">
-          <template v-if="nodes">
-            <file-tree
-              v-for="top in nodes.children"
-              :key="top.id"
-              :model="top"
-              :bus="mkNavBus"
+    <splitpanes horizontal class="default-theme top-split">
+      <pane :key="1" size="75">
+        <splitpanes class="default-theme">
+          <pane :key="11" size="20" class="filetree-pane">
+            <template v-if="nodes">
+              <file-tree
+                v-for="top in nodes.children"
+                :key="top.id"
+                :model="top"
+                :bus="mkNavBus"
+                />
+            </template>
+          </pane>
+          <pane :key="12" size="80" class="viewer-pane">
+            <codemirror class="viewer"
+              :value="code"
+              :options="cmOptions"
+              ref="myCm"
+              @ready="onCmReady"
+              @scroll="onCmScroll"
+              @viewportChange="onCmViewportChange"
+              @cursorActivity="onCmCursorActivity"
               />
-          </template>
-        </div>
-        <codemirror class="viewer"
-          :value="code"
-          :options="cmOptions"
-          ref="myCm"
-          @ready="onCmReady"
-          @scroll="onCmScroll"
-          @viewportChange="onCmViewportChange"
-          @cursorActivity="onCmCursorActivity"
-          />
-        <pre class="tooltip" id="doc_tooltip"></pre>
-      </div>
-      <div class="bottom_panel">
+            <pre class="tooltip" id="doc_tooltip"></pre>
+          </pane>
+        </splitpanes>
+      </pane>
+      <pane :key="2" size="25" class="refs-pane">
         <References
             :ticket="refTicket"
             highlight-mode="go"
             highlight-style="solarized" />
-      </div>
-    </div>
+      </pane>
+    </splitpanes>
   </div>
 </template>
 
@@ -59,6 +59,9 @@ import 'codemirror/addon/search/matchesonscrollbar.css';
 import 'codemirror/addon/scroll/annotatescrollbar.js';
 //
 import { codemirror } from 'vue-codemirror'
+
+import { Splitpanes, Pane } from 'splitpanes'
+import 'splitpanes/dist/splitpanes.css'
 
 import RH from './rest_helpers.js'
 import FileTree from './FileTree.vue'
@@ -449,7 +452,10 @@ export default {
   components: {
     FileTree,
     codemirror,
-    References
+    References,
+
+    Splitpanes,
+    Pane,
   },
 }
 </script>
@@ -460,39 +466,25 @@ export default {
   font-family: monospace;
 }
 
-.vertical {
+.splitpanes__pane {
+  background: white;
+}
+
+.top-split {
   width: 100vw;
   height: 100vh;
-  display: flex;
-  flex-direction: column;
-
 }
 
-.top_panel {
-  background: #bcedb1;
-}
-.horizontal {
-  height: 100%;
-  display: flex;
-  overflow-x: hidden;
-  flex: 3;
-}
-.bottom_panel {
-  border-top: 1px solid lightgrey;
-  overflow-y: auto;
-  flex: 1 1 auto;
-  height: 0;
-}
-
-.filetree {
-  border-right: 1px solid lightgrey;
-  height: 100%;
+.filetree-pane {
   overflow: scroll;
-  flex: 0 0 250px;
 }
-.viewer {
-  overflow-x: hidden;
-  flex: 1;
+
+.viewer-pane {
+  overflow: scroll;
+}
+
+.refs-pane {
+  overflow: scroll;
 }
 
 .baseXRef {
@@ -500,14 +492,14 @@ export default {
   cursor: pointer;
 }
 .xrefHighlight {
-  background: yellow;
+  background: #ede6b7;
 }
 .tooltip {
   position: fixed;
   overflow: hidden;
   display: none;
   padding: 5px;
-  background: yellow;
+  background: #dde;
   z-index: 1000;
 }
 .landing-line {

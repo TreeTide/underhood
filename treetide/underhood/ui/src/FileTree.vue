@@ -59,7 +59,6 @@ export default {
   white-space: nowrap;
 }
 .label:hover {
-  /* TODO sass this thing */
   background: lightgrey;
 }
 .subs {
