@@ -467,7 +467,7 @@ export default {
 }
 
 .splitpanes__pane {
-  background: white;
+  background: white !important;
 }
 
 .top-split {
@@ -476,7 +476,7 @@ export default {
 }
 
 .filetree-pane {
-  overflow: scroll;
+  overflow: auto;
 }
 
 .viewer-pane {
