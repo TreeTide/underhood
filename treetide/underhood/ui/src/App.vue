@@ -227,6 +227,7 @@ export default {
       nodes: null,
       code: '// Foobar\n// Baz\nint main() {}',
       refTicket: null,
+      renderedTicket: null,
       cmOptions: {
         mode: 'go',
         undoDepth: 0,
@@ -370,6 +371,14 @@ export default {
       this._loadSource(ticket);
     },
     _loadSource (ticket, mbLineToFocus) {
+      if (this.renderedTicket == ticket) {
+        console.log('same-ticket');
+        if (mbLineToFocus) {
+          clearLineClasses(this.codemirror);
+          this._jumpToLine(mbLineToFocus);
+        }
+        return;
+      }
       console.log('load-source-start');
       axios.get('/api/source', {
         params: { ticket }
@@ -383,20 +392,15 @@ export default {
           if (mbLineToFocus) {
             console.log('line-to-focus', mbLineToFocus);
             this.$nextTick(() => {
-              const cmLine = mbLineToFocus-1;
               // Deferred, since codemirror needs to render.
-              addLineClass(this.codemirror, cmLine, "landing-line");
-              const margin = this.codemirror.getScrollInfo().clientHeight;
-              this.codemirror.scrollIntoView({
-                line: cmLine,
-                ch: 0,
-              }, /* vertical pixels around */ margin/2);
+              this._jumpToLine(mbLineToFocus);
             });
           }
           // TODO copy initial prop to data elem to avoid warning about
           //   prop mutation (though it is not well-founded in this case,
           //   since :ticket comes directly from the route which we modify).
           this.ticket = ticket;
+          this.renderedTicket = ticket;
           this.$router.push({
             name: 'file',
             params: { ticket, line: mbLineToFocus },
@@ -417,6 +421,15 @@ export default {
             .catch(err => console.log(err));
         })
         .catch(err => console.log(err));
+    },
+    _jumpToLine(line) {
+        const cmLine = line - 1;
+        addLineClass(this.codemirror, cmLine, "landing-line");
+        const margin = this.codemirror.getScrollInfo().clientHeight;
+        this.codemirror.scrollIntoView({
+          line: cmLine,
+          ch: 0,
+        }, /* vertical pixels around */ margin/2);
     },
     markupRefs (rs) {
       console.log('start-markup; xrefs to add', rs.decors.length);
