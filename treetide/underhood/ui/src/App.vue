@@ -1,6 +1,9 @@
 <template>
   <div class="app">
-    <splitpanes horizontal class="default-theme top-split">
+    <splitpanes horizontal class="default-theme top-split"
+        @resized="onTopSplitResized"
+        @resize="onTopSplitResize"
+        >
       <pane :key="1" size="75">
         <splitpanes class="default-theme">
           <pane :key="11" size="20" class="filetree-pane">
@@ -239,9 +242,30 @@ export default {
     }
   },
   methods: {
+    onTopSplitResized(ev) {
+      const cmPercentage = ev[0].size;
+      this.onCodeMirrorHeightPercentage(cmPercentage);
+    },
+    onTopSplitResize(ev) {
+      const cmPercentage = ev[0].size;
+      this.onCodeMirrorHeightPercentage(cmPercentage);
+    },
+    onCodeMirrorHeightPercentage(cmPercentage) {
+      // https://stackoverflow.com/questions/1248081/how-to-get-the-browser-viewport-dimensions
+      const vh = Math.max(document.documentElement.clientHeight, window.innerHeight || 0);
+      const cmHeight = vh * cmPercentage / 100;
+      console.log("resize", cmPercentage, "vh", vh, "cmHeight", cmHeight);
+      this.codemirror.setSize(null, cmHeight + "px");
+    },
     onCmReady (cm) {
       // Default codemirror.css specifies 300px.
-      cm.setSize(null, '100%');
+      //
+      // NOTE: it is important to keep this value fixed (that is, not auto).
+      // See https://github.com/TreeTide/underhood/issues/21.
+      //
+      // TODO(robinp): take initial value from data maybe
+      this.onCodeMirrorHeightPercentage(75);
+
       cm.on('mousedown', this.onCmMouseDown);
       cm.on('touchstart', this.onCmTouchStart);
       const thiz = this;
@@ -274,13 +298,13 @@ export default {
       looseLog(cm);
     },
     onCmViewportChange (e) {
-      console.log('vpc', e);
+      console.log('viewport-change', e);
     },
     onCmMouseDown (e) {
-      console.log('md', e);
+      console.log('mouse-down', e);
     },
     onCmTouchStart (e) {
-      console.log('tc', e);
+      console.log('touch-start', e);
     },
     onCmCursorActivity (cm) {
       const c = cm.getDoc().getCursor();
@@ -317,7 +341,7 @@ export default {
             const fetchTook = Date.now() - this._docLookupStart;
             // We defer displaying the tooltip until sufficient hovering.
             const untilDisplay = Math.max(0, this.tooltipDelayMs - fetchTook);
-            console.log('ud', untilDisplay);
+            console.log('millis-until-hover-display', untilDisplay);
             xrefState.tooltipTimer = setTimeout(function() {
               const tt = document.getElementById('doc_tooltip');
               tt.style.left = mousePos.clientX + 'px';
@@ -346,15 +370,18 @@ export default {
       this._loadSource(ticket);
     },
     _loadSource (ticket, mbLineToFocus) {
+      console.log('load-source-start');
       axios.get('/api/source', {
         params: { ticket }
       })
         .then(response => {
+          console.log('loaded-source');
           let start = Date.now();
           resetXRefState(this.codemirror);
           this.code = response.data;
           //
           if (mbLineToFocus) {
+            console.log('line-to-focus', mbLineToFocus);
             this.$nextTick(() => {
               const cmLine = mbLineToFocus-1;
               // Deferred, since codemirror needs to render.
@@ -373,16 +400,18 @@ export default {
           this.$router.push({
             name: 'file',
             params: { ticket, line: mbLineToFocus },
-          })
+          });
           this.$nextTick(function() {
-            console.log('Duration', Date.now() - start);
+            console.log('codemirror rendered in', Date.now() - start, Date.now());
           });
           // TODO open and scroll the filetree to the source we navigated to,
           //   maybe gated by a setting
+          console.log('fetch-decors');
           axios.get('/api/decor', {
                   params: { ticket }
           })
             .then(response => {
+              console.log('got-decors');
               this.markupRefs(response.data);
             })
             .catch(err => console.log(err));
@@ -390,8 +419,8 @@ export default {
         .catch(err => console.log(err));
     },
     markupRefs (rs) {
+      console.log('start-markup; xrefs to add', rs.decors.length);
       let cm = this.codemirror;
-      console.log('xrefs to add', rs.decors.length);
       let ds = _.chunk(rs.decors, 1000);
       // TODO lazily load the xrefs based on screen position. See looseLog.
       function go() {
@@ -412,8 +441,10 @@ export default {
             }
           })
           let end = Date.now();
-          console.log('xref add chunk took', end-start);
-          setInterval(go, 20);
+          console.log('xref-add-chunk took', end-start);
+          setTimeout(go, 20);
+        } else {
+          console.log('done-morkup');
         }
       };
       go();
@@ -477,10 +508,6 @@ export default {
 
 .filetree-pane {
   overflow: auto;
-}
-
-.viewer-pane {
-  overflow: scroll;
 }
 
 .refs-pane {
