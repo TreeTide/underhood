@@ -1,5 +1,6 @@
 <template>
   <div class="app">
+    <Header :current-ticket="renderedTicket" />
     <splitpanes horizontal class="default-theme top-split"
         @resized="onTopSplitResized"
         @resize="onTopSplitResize"
@@ -69,6 +70,7 @@ import 'splitpanes/dist/splitpanes.css'
 import RH from './rest_helpers.js'
 import FileTree from './FileTree.vue'
 import References from './References.vue'
+import Header from './Header.vue'
 
 // Warning: this is a shared instance? Singleton.
 
@@ -225,7 +227,7 @@ export default {
   data () {
     return {
       nodes: null,
-      code: '// Foobar\n// Baz\nint main() {}',
+      code: '// Please wait for filenav to load on the left and select file.',
       refTicket: null,
       renderedTicket: null,
       cmOptions: {
@@ -497,6 +499,7 @@ export default {
     FileTree,
     codemirror,
     References,
+    Header,
 
     Splitpanes,
     Pane,
