@@ -34,8 +34,8 @@
       <pane :key="2" size="25" class="refs-pane">
         <References
             :ticket="refTicket"
-            highlight-mode="go"
-            highlight-style="solarized" />
+            :highlight-mode="cmOptions.mode"
+            :highlight-style="cmOptions.theme" />
       </pane>
     </splitpanes>
   </div>
@@ -46,12 +46,20 @@ import axios from 'axios';
 //
 import CodeMirror from 'codemirror';
 import 'codemirror/lib/codemirror.css';
+// Language syntax modules
 import 'codemirror/mode/clike/clike.js';
+import 'codemirror/mode/python/python.js';
 import 'codemirror/mode/go/go.js';
-import 'codemirror/theme/monokai.css';
-import 'codemirror/theme/solarized.css';
+import 'codemirror/mode/haskell/haskell.js';
+// Themes
+import 'codemirror/theme/darcula.css';
 import 'codemirror/theme/idea.css';
-//
+import 'codemirror/theme/monokai.css';
+import 'codemirror/theme/night.css';
+import 'codemirror/theme/solarized.css';
+import 'codemirror/theme/the-matrix.css';
+import 'codemirror/theme/zenburn.css';
+// Needed by.. search?
 import 'codemirror/addon/dialog/dialog.css';
 import 'codemirror/addon/dialog/dialog.js';
 //
@@ -231,10 +239,10 @@ export default {
       refTicket: null,
       renderedTicket: null,
       cmOptions: {
-        mode: 'go',
+        mode: 'text/x-go',
         undoDepth: 0,
         lineNumbers: true,
-        theme: 'solarized',
+        theme: 'zenburn',
         // TODO: with Infinitiy, full-page-search works, but rendering and
         //   adding xrefs to big docs gets slow. We should add our own search,
         //   then can ditch Infitity, so we get speedup.

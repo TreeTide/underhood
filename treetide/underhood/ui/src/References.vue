@@ -1,48 +1,48 @@
 <template>
-  <div class="refPanel">
+  <div :class="_refPanelClasses">
     <div v-if="ticket">
       <div v-if="!loading">
         <div v-if="_exists(declarations)">
-          <div class="refHeading">Declarations</div>
+          <div :class="_refHeadingClasses">Declarations</div>
           <!-- TODO un-copy-paste -->
           <div v-for="kv in _kvs(groupedDeclarations)">
-            <div class="refFile">
+            <div :class="_refFileClasses">
               <FileName :file-path="siteDisplayFile(kv)" />
             </div>
             <div v-for="ref in kv.v">
-              <span class="clickableRef" @click="onClick(ref)"><span class="refLine">{{_refVisualLine(ref)}}</span> <span v-html="_formatRefSnippet(ref)" /></span>
+              <span class="clickableRef" @click="onClick(ref)"><span :class="_refLineClasses">{{_refVisualLine(ref)}}</span> <span v-html="_formatRefSnippet(ref)" /></span>
             </div>
           </div>
           <div class="sectionSpacer"/>
         </div>
 
         <div v-if="_exists(definitions)">
-          <div class="refHeading">Definition</div>
+          <div :class="_refHeadingClasses">Definition</div>
           <div v-for="kv in _kvs(groupedDefinitions)">
-            <div class="refFile">
+            <div :class="_refFileClasses">
               <FileName :file-path="siteDisplayFile(kv)" />
             </div>
             <div v-for="ref in kv.v">
-              <span class="clickableRef" @click="onClick(ref)"><span class="refLine">{{_refVisualLine(ref)}}</span> <span v-html="_formatRefSnippet(ref)" /></span>
+              <span class="clickableRef" @click="onClick(ref)"><span :class="_refLineClasses">{{_refVisualLine(ref)}}</span> <span v-html="_formatRefSnippet(ref)" /></span>
             </div>
           </div>
           <div class="sectionSpacer"/>
         </div>
 
-        <div class="refHeading">Callers ({{ callCount }})</div>
+        <div :class="_refHeadingClasses">Callers ({{ callCount }})</div>
         <div v-for="kv in _kvs(groupedCalls)">
-          <div class="refFile">
+          <div :class="_refFileClasses">
             <FileName :file-path="callDisplayFile(kv)" />
           </div>
           <div v-for="cc in kv.v">
             <div class="clickableRef callContext" @click="onClick(cc.ccContextSite)">
-              <span class="refLine">{{_refVisualLine(cc.ccContextSite)}}</span>
+              <span :class="_refLineClasses">{{_refVisualLine(cc.ccContextSite)}}</span>
               <span v-html="_formatRefSnippet(cc.ccContextSite)" /></span>
             </div>
             <div v-for="snippet in cc.ccSites">
               <template v-for="callSite in [synthSite(cc.ccContextSite, snippet)]">
                 <span class="clickableRef" @click="onClick(callSite)">
-                  <span class="refLine">{{_refVisualLine(callSite)}}</span>
+                  <span :class="_refLineClasses">{{_refVisualLine(callSite)}}</span>
                   <span v-html="_formatRefSnippet(callSite)" /></span>
                 </span>
               </template>
@@ -51,13 +51,13 @@
           <div class="sectionSpacer"/>
         </div>
 
-        <div class="refHeading">References ({{ refCount }})</div>
+        <div :class="_refHeadingClasses">References ({{ refCount }})</div>
         <div v-for="kv in _kvs(groupedRefs)">
-          <div class="refFile">
+          <div :class="_refFileClasses">
             <FileName :file-path="siteDisplayFile(kv)" />
           </div>
           <div v-for="ref in kv.v">
-            <span class="clickableRef" @click="onClick(ref)"><span class="refLine">{{_refVisualLine(ref)}}</span> <span v-html="_formatRefSnippet(ref)" /></span>
+            <span class="clickableRef" @click="onClick(ref)"><span :class="_refLineClasses">{{_refVisualLine(ref)}}</span><span v-html="_formatRefSnippet(ref)" /></span>
           </div>
           <div class="sectionSpacer"/>
         </div>
@@ -132,6 +132,23 @@ export default {
       return _.mapValues(_.groupBy(this.declarations, siteContainerTicket),
         vs => _.sortBy(vs, v => this._refVisualLine(v)));
     },
+    _refPanelClasses() {
+      return ['CodeMirror', 'cm-s-zenburn', 'refPanel'];
+    },
+    _refClasses() {
+      return ['CodeMirror', 'cm-s-zenburn', 'refCm'];
+    },
+    _refLineClasses() {
+      return ['refLine', 'CodeMirror-linenumber'];
+    },
+    _refHeadingClasses() {
+      // Using CodeMirror-selected to get a style-matching but different
+      // background color.
+      return ['refHeading', 'CodeMirror-selected'];
+    },
+    _refFileClasses() {
+      return ['refFile', 'CodeMirror-selected'];
+    },
   },
   methods: {
     siteDisplayFile(kv) {
@@ -171,13 +188,12 @@ export default {
       }
       return res;
     },
-    _highlight(l) {
-      const mode = CodeMirror.getMode(CodeMirror.defaults, this.highlightMode);
+    _highlight(mode, l) {
       let res = "";
       CodeMirror.runMode(l, mode, function (t, st) {
         res += `<span class="cm-${st}">${_.escape(t)}</span>`
       });
-      return `<span class="cm-s-${this.highlightStyle}">${res}</span>`;
+      return res;
     },
     _refVisualLine(r) {
       return r.sSnippet.snippetOccurrenceSpan.from.line + 1;
@@ -203,10 +219,15 @@ export default {
             break;
         }
       }
-      return "&nbsp;".repeat(pad2) +
-        this._highlight(t.substring(0, subStart)) +
-        "<span class='refPanelHighlight'>" + this._highlight(t.substring(subStart, subEnd)) + "</span>" +
-        this._highlight(t.substring(subEnd));
+      // TODO(robinp): don't use current highlightMode, rather according to
+      //   the ref's languages. Since the two might differ.
+      const mode = CodeMirror.getMode(CodeMirror.defaults, this.highlightMode);
+      return `<span class="cm-s-${this.highlightStyle}">` +
+        "&nbsp;".repeat(pad2) +
+        this._highlight(mode, t.substring(0, subStart)) +
+        "<span class='refPanelHighlight'>" + this._highlight(mode, t.substring(subStart, subEnd)) + "</span>" +
+        this._highlight(mode, t.substring(subEnd)) +
+        "</span>";
     },
     _fetchReferences(ticket) {
       if (state.canceller) {
@@ -252,6 +273,9 @@ export default {
 .sectionSpacer {
   margin-bottom: 5px;
 }
+.refPanel {
+  height: 100%;
+}
 .refPanelHighlight {
   font-weight: bold;
   text-decoration: underline dotted;
@@ -262,23 +286,25 @@ export default {
 .clickableRef:hover {
   text-decoration: underline;
 }
+.refCm {
+  height: auto;
+}
 .refLine {
+  /*
   color: grey;
   margin-left: 0px;
+  */
 }
 .refLine::after {
-  content: ':';
+  content: '|';  /* TODO(robinp): figure if we can make a nice gutter like CM */
 }
 .refHeading {
-  background: #bbd;
   padding-top: 2px;
   font-weight: bold;
   margin-bottom: 2px;
 }
 .refFile {
   margin-top: 2px;
-  color: #444;
-  background: #dde;
 }
 .callContext {
   margin-top: 2px;
