@@ -1,14 +1,33 @@
 <template>
-    <div>{{currentTicket}}</div>
+    <div>
+      <div>{{currentTicket}}</div>
+      <select v-model="theme">
+        <option>zenburn</option>
+        <option>monokai</option>
+        <option>idea</option>
+        <option>night</option>
+        <option>solarized</option>
+        <option>the-matrix</option>
+        <option>darcula</option>
+      </select>
+    </div>
 </template>
 
 <script>
 export default {
   props: {
     currentTicket: String,
+    bus: Object,
   },
   data () {
     return {
+      theme: 'zenburn',
+    }
+  },
+  watch: {
+    theme (v) {
+      console.log('theme change', v);
+      this.bus.onTheme(v);
     }
   },
 }

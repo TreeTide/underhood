@@ -133,10 +133,10 @@ export default {
         vs => _.sortBy(vs, v => this._refVisualLine(v)));
     },
     _refPanelClasses() {
-      return ['CodeMirror', 'cm-s-zenburn', 'refPanel'];
+      return ['CodeMirror', 'cm-s-' + this.highlightStyle, 'refPanel'];
     },
     _refClasses() {
-      return ['CodeMirror', 'cm-s-zenburn', 'refCm'];
+      return ['CodeMirror', 'cm-s-' + this.highlightStyle, 'refCm'];
     },
     _refLineClasses() {
       return ['refLine', 'CodeMirror-linenumber'];

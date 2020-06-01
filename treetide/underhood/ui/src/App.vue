@@ -1,7 +1,7 @@
 <template>
   <div class="app">
     <!-- TODO(robinp): better automated sizing between header and rest -->
-    <Header class="header" :current-ticket="renderedTicket" />
+    <Header class="header" :current-ticket="renderedTicket" :bus="mkThemeBus" />
     <splitpanes horizontal class="default-theme top-split"
         @resized="onTopSplitResized"
         @resize="onTopSplitResize"
@@ -9,7 +9,7 @@
       <pane :key="1" size="75">
         <splitpanes class="default-theme">
           <pane :key="11" size="20" class="filetree-pane">
-            <div v-if="nodes" class="CodeMirror cm-s-zenburn fullHeight">
+            <div v-if="nodes" :class='"CodeMirror cm-s-" + cmOptions.theme + " fullHeight"'>
               <file-tree
                 v-for="top in nodes.children"
                 :key="top.id"
@@ -381,6 +381,9 @@ export default {
       const ticket = RH.idUnescape(id);
       this._loadSource(ticket);
     },
+    onTheme (theme) {
+      this.cmOptions.theme = theme;
+    },
     _loadSource (ticket, mbLineToFocus) {
       if (this.renderedTicket == ticket) {
         console.log('same-ticket');
@@ -482,6 +485,12 @@ export default {
     mkNavBus () {
       return {
         onClick: this.onNavClick,
+      }
+    },
+    // Note: will be gone for vuex eventually.
+    mkThemeBus () {
+      return {
+        onTheme: this.onTheme,
       }
     },
     codemirror() {
