@@ -1,6 +1,7 @@
 <template>
   <div class="app">
-    <Header :current-ticket="renderedTicket" />
+    <!-- TODO(robinp): better automated sizing between header and rest -->
+    <Header class="header" :current-ticket="renderedTicket" />
     <splitpanes horizontal class="default-theme top-split"
         @resized="onTopSplitResized"
         @resize="onTopSplitResize"
@@ -519,15 +520,19 @@ export default {
 .app {
   font-size: 13px;
   font-family: monospace;
+  overflow-x: hidden;
 }
 
 .splitpanes__pane {
   background: white !important;
 }
 
+.header {
+  height: 2vh;
+}
 .top-split {
   width: 100vw;
-  height: 100vh;
+  height: 98vh;
 }
 
 .filetree-pane {
