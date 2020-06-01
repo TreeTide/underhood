@@ -287,6 +287,7 @@ export default {
   text-decoration: underline;
 }
 .refCm {
+  /* To override CodeMirror's default height of 300 pixels. */
   height: auto;
 }
 .refLine {

@@ -1,9 +1,12 @@
 <template>
   <div class="tree">
     <div
-      :class="{dir: isDir, label: true, generated: isGenerated}"
-      @click="onClick">
-      {{ model.name }}
+      :class="{dir: isDir, label: true, 'CodeMirror-selected': hover }"
+      @click="onClick"
+      @mouseover="onHover"
+      @mouseout="onHoverDone">
+      <!-- Note: cm-meta arbitrarily picked for generated. Could add indirection here. -->
+      <span :class="{'cm-meta': isGenerated}">{{ model.name }}</span>
       <span v-if="isDir">[{{ isOpen ? '-' : '+' }}]</span>
     </div>
     <div class="subs" v-show="isOpen" v-if="isDir">
@@ -28,6 +31,11 @@ export default {
     model: Object,
     bus: Object,
   },
+  data() {
+    return {
+      hover: false
+    }
+  },
   computed: {
     isOpen () {
       return this.model.open;
@@ -40,6 +48,14 @@ export default {
     }
   },
   methods: {
+    // Note: we use JS instead CSS since we want to reuse the static CodeMirror
+    // CSS. Might be doable with SCSS etc, but..
+    onHover () {
+      this.hover = true;
+    },
+    onHoverDone() {
+      this.hover = false;
+    },
     onClick () {
       if (this.isDir) {
         this.$set(this.model, 'open',  !this.model.open);
@@ -67,17 +83,11 @@ export default {
 .label {
   white-space: nowrap;
 }
-.label:hover {
-  background: lightgrey;
-}
 .subs {
   margin-left: 20px;
 }
 .dir {
   padding-top: 1px;
   font-weight: bold;
-}
-.generated {
-  color: #88a;
 }
 </style>

@@ -9,14 +9,14 @@
       <pane :key="1" size="75">
         <splitpanes class="default-theme">
           <pane :key="11" size="20" class="filetree-pane">
-            <template v-if="nodes">
+            <div v-if="nodes" class="CodeMirror cm-s-zenburn fullHeight">
               <file-tree
                 v-for="top in nodes.children"
                 :key="top.id"
                 :model="top"
                 :bus="mkNavBus"
                 />
-            </template>
+            </div>
           </pane>
           <pane :key="12" size="80" class="viewer-pane">
             <codemirror class="viewer"
@@ -560,5 +560,8 @@ export default {
 }
 .landing-line {
   background: #ffeed2;
+}
+.fullHeight {
+  height: 100%;
 }
 </style>
