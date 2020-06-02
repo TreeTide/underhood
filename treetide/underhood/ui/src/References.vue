@@ -133,7 +133,7 @@ export default {
         vs => _.sortBy(vs, v => this._refVisualLine(v)));
     },
     _refPanelClasses() {
-      return ['CodeMirror', 'cm-s-' + this.highlightStyle, 'refPanel'];
+      return ['cm-s-' + this.highlightStyle, 'refPanel'];
     },
     _refClasses() {
       return ['CodeMirror', 'cm-s-' + this.highlightStyle, 'refCm'];
@@ -274,7 +274,6 @@ export default {
   margin-bottom: 5px;
 }
 .refPanel {
-  height: 100%;
 }
 .refPanelHighlight {
   font-weight: bold;

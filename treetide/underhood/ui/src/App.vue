@@ -37,6 +37,7 @@
             :ticket="refTicket"
             :highlight-mode="cmOptions.mode"
             :highlight-style="cmOptions.theme" />
+        <div :class="'CodeMirror cm-s-' + cmOptions.theme + ' refs-filler'" />
       </pane>
     </splitpanes>
   </div>
@@ -550,6 +551,13 @@ export default {
 
 .refs-pane {
   overflow: scroll;
+  display: flex;
+  flex-direction: column;
+}
+
+.refs-filler {
+  flex: 1 0 auto;
+  height: auto;  /* To undo CodeMirror class */
 }
 
 .baseXRef {
@@ -571,6 +579,8 @@ export default {
   background: #ffeed2;
 }
 .fullHeight {
+  /* Needed to undo adverse effects of CodeMirror class. */
   height: 100%;
+  overflow: auto;
 }
 </style>
