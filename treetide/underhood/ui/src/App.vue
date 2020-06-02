@@ -203,6 +203,17 @@ function chooseDecorStrategy(ds) {
   let mn = Infinity;
   let res = null;
   for (let i in ds) {
+    if (ds[i].dTarget.includes('_test')) {
+      // This is a HACK - for Kythe repo specially.
+      // Try on 'kythe/go/platform/delimited/dedup/dedup.go'
+      //
+      // TODO(robin): go code (and maybe others) often puts multiple refs at the same
+      // span (when a package spans multiple files, a ref into each path is emitted,
+      // short of better options). So we should fetch (&merge?) all results from these.
+      //
+      // Q: how do we display these? Tabs? Tables?
+      continue;
+    }
     let span = ds[i].dSpan;
     // HACK note: we should check the edge type, and choose based on that.
     // Or display a multi-edge menu.
@@ -581,6 +592,6 @@ export default {
 .fullHeight {
   /* Needed to undo adverse effects of CodeMirror class. */
   height: 100%;
-  overflow: auto;
+  overflow: auto; /* Would be nicer with unset, but then needs flex filler */
 }
 </style>

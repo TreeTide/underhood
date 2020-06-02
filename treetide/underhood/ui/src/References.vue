@@ -133,13 +133,14 @@ export default {
         vs => _.sortBy(vs, v => this._refVisualLine(v)));
     },
     _refPanelClasses() {
-      return ['cm-s-' + this.highlightStyle, 'refPanel'];
+      return ['CodeMirror', this._themeClass, 'notReallyCodeMirror'];
     },
-    _refClasses() {
-      return ['CodeMirror', 'cm-s-' + this.highlightStyle, 'refCm'];
+    _themeClass() {
+      return 'cm-s-' + this.highlightStyle;
     },
     _refLineClasses() {
-      return ['refLine', 'CodeMirror-linenumber'];
+      // CodeMirrir as darcula quickfix
+      return ['refLine', 'CodeMirror-linenumber', 'CodeMirrir-linenumber'];
     },
     _refHeadingClasses() {
       // Using CodeMirror-selected to get a style-matching but different
@@ -273,8 +274,6 @@ export default {
 .sectionSpacer {
   margin-bottom: 5px;
 }
-.refPanel {
-}
 .refPanelHighlight {
   font-weight: bold;
   text-decoration: underline dotted;
@@ -285,9 +284,10 @@ export default {
 .clickableRef:hover {
   text-decoration: underline;
 }
-.refCm {
+.notReallyCodeMirror {
   /* To override CodeMirror's default height of 300 pixels. */
   height: auto;
+  overflow: unset;
 }
 .refLine {
   /*
