@@ -133,22 +133,19 @@ export default {
         vs => _.sortBy(vs, v => this._refVisualLine(v)));
     },
     _refPanelClasses() {
-      return ['CodeMirror', this._themeClass, 'notReallyCodeMirror'];
+      return ['uh-background uh-color'];
     },
     _themeClass() {
       return 'cm-s-' + this.highlightStyle;
     },
     _refLineClasses() {
-      // CodeMirrir as darcula quickfix
-      return ['refLine', 'CodeMirror-linenumber', 'CodeMirrir-linenumber'];
+      return ['refLine', 'uh-linenumber'];
     },
     _refHeadingClasses() {
-      // Using CodeMirror-selected to get a style-matching but different
-      // background color.
-      return ['refHeading', 'CodeMirror-selected'];
+      return ['refHeading', 'uh-selected-background'];
     },
     _refFileClasses() {
-      return ['refFile', 'CodeMirror-selected'];
+      return ['refFile', 'uh-selected-background'];
     },
   },
   methods: {
@@ -284,16 +281,7 @@ export default {
 .clickableRef:hover {
   text-decoration: underline;
 }
-.notReallyCodeMirror {
-  /* To override CodeMirror's default height of 300 pixels. */
-  height: auto;
-  overflow: unset;
-}
 .refLine {
-  /*
-  color: grey;
-  margin-left: 0px;
-  */
 }
 .refLine::after {
   content: '|';  /* TODO(robinp): figure if we can make a nice gutter like CM */

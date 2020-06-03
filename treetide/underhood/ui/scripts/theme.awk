@@ -4,13 +4,14 @@ BEGIN {
   theme_style = "cm-s-"theme;
   bg_regexp = "background: ([^;]+);";
   bg_col_regexp = "background-color: ([^;]+);";
-  color_regexp = "color: ([^;]+);";
+  /* Note: exclusion to avoid matching background-color. */
+  color_regexp = "[^-]color: ([^;]+);";
 }
 
-function to_css(re, name) {
+function to_css(re, name, idx, pre, post) {
   res = match($0, re, parts);
   if (res) {
-    print ".uh-s-"theme" .uh-"name" { "parts[0]" }";
+    print ".uh-s-"theme" .uh-"name" { "pre""parts[idx || 0]""post" }";
   }
   return res;
 }
@@ -23,6 +24,11 @@ $0 ~ "(\\."theme_style".CodeMirror {|\\."theme_style" {)" {
     to_css(bg_col_regexp, "background");
   }
   to_css(color_regexp, "color");
+
+  if (!to_css(bg_regexp, "color-inverted", 1, "color: ", " !important ;")) {
+    to_css(bg_col_regexp, "color-inverted", 1, "color: ", " !important ;");
+  }
+  to_css(color_regexp, "background-inverted", 1, "background: ", " !important ;");
 }
 
 $0 ~ ".CodeMirror-activeline-background" {
@@ -33,7 +39,12 @@ $0 ~ "span::selection" {
   to_css(bg_regexp, "selection-background");
 }
 
-$0 ~ "div.CodeMirror-selected" {
+$0 ~ theme_style" *div.CodeMirror-selected" {
   to_css(bg_regexp, "selected-background");
   to_css(color_regexp, "selected-color");  /* Note: rarely present */
+}
+
+$0 ~ ".CodeMirr.r-linenumber" {
+  /* wildcard is for typo in darcula */
+  to_css(color_regexp, "linenumber");
 }

@@ -1,12 +1,12 @@
 <template>
   <div class="tree">
     <div
-      :class="{dir: isDir, label: true, 'CodeMirror-selected': hover }"
+      :class="{dir: isDir, label: true, 'uh-selected-background': hover }"
       @click="onClick"
       @mouseover="onHover"
       @mouseout="onHoverDone">
-      <!-- Note: cm-meta arbitrarily picked for generated. Could add indirection here. -->
-      <span :class="{'cm-meta': isGenerated}">{{ model.name }}</span>
+      <!-- Note: cm-... arbitrarily picked for generated. Could add indirection here. -->
+      <span :class="{'cm-string': isGenerated}">{{ model.name }}</span>
       <span v-if="isDir">[{{ isOpen ? '-' : '+' }}]</span>
     </div>
     <div class="subs" v-show="isOpen" v-if="isDir">

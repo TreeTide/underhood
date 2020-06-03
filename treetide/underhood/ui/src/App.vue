@@ -1,5 +1,5 @@
 <template>
-  <div class="app">
+  <div :class="_appClasses">
     <!-- TODO(robinp): better automated sizing between header and rest -->
     <Header class="header" :current-ticket="renderedTicket" :bus="mkThemeBus" />
     <splitpanes horizontal class="default-theme top-split"
@@ -9,7 +9,7 @@
       <pane :key="1" size="75">
         <splitpanes class="default-theme">
           <pane :key="11" size="20" class="filetree-pane">
-            <div v-if="nodes" :class='"CodeMirror cm-s-" + cmOptions.theme + " fullHeight"'>
+            <div v-if="nodes" class="uh-background uh-color fullHeight">
               <file-tree
                 v-for="top in nodes.children"
                 :key="top.id"
@@ -37,7 +37,7 @@
             :ticket="refTicket"
             :highlight-mode="cmOptions.mode"
             :highlight-style="cmOptions.theme" />
-        <div :class="'CodeMirror cm-s-' + cmOptions.theme + ' refs-filler'" />
+        <div :class="'uh-background refs-filler'" />
       </pane>
     </splitpanes>
   </div>
@@ -61,6 +61,16 @@ import 'codemirror/theme/night.css';
 import 'codemirror/theme/solarized.css';
 import 'codemirror/theme/the-matrix.css';
 import 'codemirror/theme/zenburn.css';
+// Our corresponding themes
+import '../static/css/base.css';
+import '../static/css/uh-darcula.css';
+import '../static/css/uh-idea.css';
+import '../static/css/uh-monokai.css';
+import '../static/css/uh-night.css';
+import '../static/css/uh-solarized-dark.css';
+import '../static/css/uh-solarized-light.css';
+import '../static/css/uh-the-matrix.css';
+import '../static/css/uh-zenburn.css';
 // Needed by.. search?
 import 'codemirror/addon/dialog/dialog.css';
 import 'codemirror/addon/dialog/dialog.js';
@@ -177,7 +187,7 @@ function highlightXRef(cm, ticket) {
       const cmStart = ds[i].dStart;
       const cmEnd = ds[i].dEnd;
       const marker = cm.markText(cmStart, cmEnd, {
-        className: 'CodeMirror-selected',
+        className: 'uh-color-inverted uh-background-inverted',
       });
       xrefState.highlightMarkers.push(marker);
       hls.push({
@@ -450,7 +460,7 @@ export default {
     },
     _jumpToLine(line) {
         const cmLine = line - 1;
-        addLineClass(this.codemirror, cmLine, "landing-line");
+        addLineClass(this.codemirror, cmLine, "uh-activeline-background");
         const margin = this.codemirror.getScrollInfo().clientHeight;
         this.codemirror.scrollIntoView({
           line: cmLine,
@@ -507,7 +517,18 @@ export default {
     },
     codemirror() {
       return this.$refs.myCm.codemirror
-    }
+    },
+    _appClasses() {
+      // cmThemeClass for the semantic-like highlights, like used in the filetree
+      return ['app', this._uhThemeClass, this._cmThemeClass];
+    },
+    _uhThemeClass() {
+      // Note: space replace for "solarized light" and "... dark"
+      return 'uh-s-' + this.cmOptions.theme.replace(' ', '-');
+    },
+    _cmThemeClass() {
+      return 'cm-s-' + this.cmOptions.theme.split(' ')[0];
+    },
   },
   watch: {
     '$route.params.ticket': function() {
@@ -568,7 +589,7 @@ export default {
 
 .refs-filler {
   flex: 1 0 auto;
-  height: auto;  /* To undo CodeMirror class */
+  height: auto;
 }
 
 .baseXRef {
@@ -590,7 +611,6 @@ export default {
   background: #ffeed2;
 }
 .fullHeight {
-  /* Needed to undo adverse effects of CodeMirror class. */
   height: 100%;
   overflow: auto; /* Would be nicer with unset, but then needs flex filler */
 }

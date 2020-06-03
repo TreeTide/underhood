@@ -1,4 +1,7 @@
 .uh-s-darcula .uh-background { background: #2B2B2B; }
-.uh-s-darcula .uh-color { color: #A9B7C6; }
+.uh-s-darcula .uh-color {  color: #A9B7C6; }
+.uh-s-darcula .uh-color-inverted { color: #2B2B2B !important ; }
+.uh-s-darcula .uh-background-inverted { background: #A9B7C6 !important ; }
 .uh-s-darcula .uh-activeline-background { background: #323232; }
+.uh-s-darcula .uh-linenumber {  color: #606366; }
 .uh-s-darcula .uh-selected-background { background: #214283; }

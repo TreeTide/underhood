@@ -1,6 +1,6 @@
 <template>
-    <div>
-      <div>{{currentTicket}}</div>
+    <div class="uh-background">
+      <div><span class="cm-keyword">{{currentTicket}}</span></div>
       <select v-model="theme">
         <option>zenburn</option>
         <option>monokai</option>
@@ -36,7 +36,6 @@ export default {
 
 <style scoped>
   div {
-    background-color: lightgreen;
     display: flex;
     justify-content: center;
   }

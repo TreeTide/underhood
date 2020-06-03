@@ -1,0 +1,11 @@
+.uh-s-solarized-dark .uh-background { background: #002b36; }
+.uh-s-solarized-dark .uh-color {  color: #839496; }
+.uh-s-solarized-dark .uh-color-inverted {
+  color: #002b36 !important;
+  text-shadow: none !important;
+}
+.uh-s-solarized-dark .uh-background-inverted { background: #839496 !important ; }
+.uh-s-solarized-dark .uh-selected-background { background: #073642; }
+.uh-s-solarized-dark .uh-selection-background { background: rgba(7, 54, 66, 0.99); }
+.uh-s-solarized-dark .uh-activeline-background { background: rgba(255, 255, 255, 0.06); }
+.uh-s-solarized-dark .uh-linenumber { color: #586e75; }
