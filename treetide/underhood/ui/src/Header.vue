@@ -6,7 +6,8 @@
         <option>monokai</option>
         <option>idea</option>
         <option>night</option>
-        <option>solarized</option>
+        <option>solarized light</option>
+        <option>solarized dark</option>
         <option>the-matrix</option>
         <option>darcula</option>
       </select>

@@ -177,7 +177,7 @@ function highlightXRef(cm, ticket) {
       const cmStart = ds[i].dStart;
       const cmEnd = ds[i].dEnd;
       const marker = cm.markText(cmStart, cmEnd, {
-        className: 'xrefHighlight',
+        className: 'CodeMirror-selected',
       });
       xrefState.highlightMarkers.push(marker);
       hls.push({
