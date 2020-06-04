@@ -29,7 +29,7 @@
           <div class="sectionSpacer"/>
         </div>
 
-        <div :class="_refHeadingClasses">Callers ({{ callCount }})</div>
+        <div :class="_refHeadingClasses" v-if="callCount>0">Callers ({{ callCount }})</div>
         <div v-for="kv in _kvs(groupedCalls)">
           <div :class="_refFileClasses">
             <FileName :file-path="callDisplayFile(kv)" />
@@ -92,6 +92,10 @@ function siteContainerTicket(s) {
   return s.sContainingFile.dfFileTicket;
 }
 
+function _lineColString(p) {
+  return p.line + ':' + p.ch;
+}
+
 export default {
   props: {
     ticket: String,
@@ -121,8 +125,16 @@ export default {
       return _.groupBy(this.calls, c => siteContainerTicket(c.ccContextSite));
     },
     groupedRefs () {
-      return _.mapValues(_.groupBy(this.refs, siteContainerTicket),
-        vs => _.sortBy(vs, v => this._refVisualLine(v)));
+      return _.mapValues(
+        _.groupBy(this.refs, siteContainerTicket),
+        vs =>
+          // Note: drop subsequent refs from the same line. This is until we
+          // differentiate (and dedup) ref kinds more intelligently.
+          _.sortedUniqBy(
+            _.sortBy(vs, v => this._refVisualLine(v)),
+            v => _lineColString(v.sSnippet.snippetFullSpan.from)
+          )
+        );
     },
     groupedDefinitions () {
       return _.mapValues(_.groupBy(this.definitions, siteContainerTicket),
