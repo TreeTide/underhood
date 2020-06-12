@@ -34,6 +34,7 @@
       </pane>
       <pane :key="2" size="25" class="refs-pane">
         <References
+            :bus="mkRefBus"
             :ticket="refTicket"
             :highlight-mode="cmOptions.mode"
             :highlight-style="cmOptions.theme" />
@@ -406,6 +407,30 @@ export default {
     onTheme (theme) {
       this.cmOptions.theme = theme;
     },
+    onRefClick (filePath) {
+      // This filetree model handling should eventually go to a top-level
+      // filetree component.
+      console.log('should open', filePath);
+      let parts = filePath.split("/");
+      let i = 0;
+      let cur = this.nodes;
+      while (cur && cur.children && cur.children.length > 0) {
+        for (let c of cur.children) {
+          if (c.name == parts[i]) {
+            console.log('found', c.name);
+            c.open = true;
+            i += 1;
+            if (i == parts.length) {
+              console.log('hiliting', c.name);
+              c.highlight = true;
+            }
+            cur = c;
+            break;
+          }
+          cur = null;
+        }
+      }
+    },
     _loadSource (ticket, mbLineToFocus) {
       if (this.renderedTicket == ticket) {
         console.log('same-ticket');
@@ -513,6 +538,11 @@ export default {
     mkThemeBus () {
       return {
         onTheme: this.onTheme,
+      }
+    },
+    mkRefBus () {
+      return {
+        onRefClick: this.onRefClick,
       }
     },
     codemirror() {

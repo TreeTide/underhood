@@ -98,6 +98,7 @@ function _lineColString(p) {
 
 export default {
   props: {
+    bus: Object,
     ticket: String,
     highlightMode: String,
     highlightStyle: String,
@@ -184,6 +185,11 @@ export default {
           line: this._refVisualLine(r),
         },
       });
+      // Note: the above router handling could move to app, passing params
+      // through the bus too.
+      // TODO: dfDisplayName is not the file-tree-mapped name, so can't be
+      // directly used to open / highlight the filetree.
+      this.bus.onRefClick(r.sContainingFile.dfDisplayName);
     },
     _exists(v) {
       return v != null && (v.length == undefined || v.length > 0);

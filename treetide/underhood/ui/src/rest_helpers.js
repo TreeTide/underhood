@@ -15,7 +15,9 @@ function fileTreeToNav(t) {
     id: idEscape(t.kytheUri),
     name: t.display,
     onlyGenerated: t.onlyGenerated,
-    children: t.children.map(fileTreeToNav)
+    children: t.children.map(fileTreeToNav),
+    open: false,
+    highlight: false,
   };
 }
 

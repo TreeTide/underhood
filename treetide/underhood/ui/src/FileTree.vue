@@ -6,7 +6,7 @@
       @mouseover="onHover"
       @mouseout="onHoverDone">
       <!-- Note: cm-... arbitrarily picked for generated. Could add indirection here. -->
-      <span :class="{'cm-string': isGenerated}">{{ model.name }}</span>
+      <span :class="{'cm-string': isGenerated, 'cm-keyword': isHighlight}">{{ model.name }}</span>
       <span v-if="isDir">[{{ isOpen ? '-' : '+' }}]</span>
     </div>
     <div class="subs" v-show="isOpen" v-if="isDir">
@@ -45,7 +45,10 @@ export default {
     },
     isGenerated () {
       return this.model.onlyGenerated;
-    }
+    },
+    isHighlight() {
+      return this.model.highlight;
+    },
   },
   methods: {
     // Note: we use JS instead CSS since we want to reuse the static CodeMirror
@@ -69,6 +72,7 @@ export default {
         }
       } else {
         this.bus.onClick(this.model.id)
+        // TODO trigger refClick?
       }
     },
   },
