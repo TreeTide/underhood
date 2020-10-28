@@ -19,6 +19,8 @@ import qualified Data.List                     as L
 import qualified Data.List.NonEmpty            as NE
 import qualified Data.Map                      as M
 import qualified Data.Text                     as T
+import qualified Data.Text.Encoding            as T
+import qualified Data.Text.Encoding.Error      as T
 import           Network.HTTP.Client            ( Manager
                                                 , newManager
                                                 , defaultManagerSettings
@@ -208,9 +210,13 @@ server opts manager' =
                                      (\c -> T.unlines . take c . T.lines)
                                      mbPreview
                                    $ fromMaybe
-                                         ""
+                                        -- Note: lot more resiliency + logging should be added here,
+                                        -- to use as fallback: lenient base64 decoding, and lenient
+                                        -- text decoding. Does lenient decoding interfere with anchor locations? What is the right place in the pipeline to solve this? (iconv at source? etc)
+                                         "(Failed to get source)"
                                          (   K.source_text'DecRep rep
-                                         >>= ( fmap toS
+                                         >>= ( -- for now use lenient text, but see comments above 
+                                              fmap (T.decodeUtf8With T.lenientDecode)
                                              . rightToMaybe
                                              . Base64.decode
                                              . toS

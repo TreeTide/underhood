@@ -347,6 +347,9 @@ export default {
     _onHoverAt(cmPos, mousePos) {
       const decors = lookupXRef(cmPos);
       if (decors.length) {
+        if (decors.length > 2) {
+          console.log("Mulitple choices", decors)
+        }
         // TODO use pluggable logic to choose.
         const ticket = chooseDecorStrategy(decors).dTarget;
         // TODO convert imperative stuff to events, let other components add
