@@ -53,6 +53,7 @@ in haskellPackages.ghcWithPackages (p: with p; [
   prometheus-metrics-ghc
   recursion-schemes
   resourcet
+  resource-pool
   safe-exceptions
   scotty     # prefer servant
   servant

@@ -99,6 +99,8 @@ haskell_toolchain_library(name = "recursion-schemes")
 
 haskell_toolchain_library(name = "resourcet")
 
+haskell_toolchain_library(name = "resource-pool")
+
 # See https://www.fpcomplete.com/blog/2018/04/async-exception-handling-haskell.
 # For new code consider using 'unliftio'.
 # For legacy third-party code might need to use 'exceptions'.
