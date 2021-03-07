@@ -21,7 +21,8 @@ let
   });
 in with haskellPackages; [
   brittany
-  
+  ghcid
+
   apply-refact  # for hlint
   hlint
 ]

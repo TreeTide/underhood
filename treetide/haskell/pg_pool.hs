@@ -5,6 +5,7 @@ module TreeTide.PgPool
     , createPgPool
     --
     , queryPool
+    , queryPool_
     , executePool
     , withTransactionPool
     --
@@ -34,6 +35,9 @@ createPgPool opts = do
 
 queryPool :: (ToRow q, FromRow r) => PgPool -> Query -> q -> IO [r]
 queryPool pool q p = withResource pool $ \conn -> query conn q p
+
+queryPool_ :: (FromRow r) => PgPool -> Query -> IO [r]
+queryPool_ pool q = withResource pool $ \conn -> query_ conn q
 
 executePool :: ToRow q => PgPool -> Query -> q -> IO Int64
 executePool pool q p = withResource pool $ \conn -> execute conn q p

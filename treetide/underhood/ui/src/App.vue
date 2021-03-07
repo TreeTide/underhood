@@ -447,6 +447,9 @@ export default {
       axios.get('/api/source', {
         params: { ticket }
       })
+      axios.get('/api/source', {
+        params: { ticket }
+      })
         .then(response => {
           console.log('loaded-source');
           let start = Date.now();

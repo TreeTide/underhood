@@ -59,7 +59,7 @@ kytheUriFromDirectoryRequest DirectoryRequest {..} =
         fmap
             ( (("?" <> p <> "=") <>)
             . toS
-            . escapeURIString isUnescapedInURI
+            . escapeURIString isUnescapedInURIComponent
             . toS
             )
 
