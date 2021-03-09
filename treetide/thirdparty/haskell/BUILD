@@ -3,6 +3,7 @@ package(default_visibility = ["//visibility:public"])
 load(
     "@rules_haskell//haskell:defs.bzl",
     "haskell_toolchain_library",
+    "haskell_library",
 )
 
 # Expand below list on-demand. Need to add to //:ghc.nix as well.
@@ -21,6 +22,21 @@ haskell_toolchain_library(name = "criterion")
 haskell_toolchain_library(name = "mtl")
 
 haskell_toolchain_library(name = "text")
+
+# Note: we have local modifications, build directly until upstreamed.
+# Actually we need the library to be used in the repl, for fast local
+# development. Can go back to toolchain lib after.
+#
+# haskell_toolchain_library(name = "text-offset")
+haskell_library(
+    name = "text-offset",
+    srcs = ["TextOffset.hs"],
+    deps = [
+        ":base",
+        ":text",
+        ":vector",
+    ],
+)
 
 haskell_toolchain_library(name = "time")
 

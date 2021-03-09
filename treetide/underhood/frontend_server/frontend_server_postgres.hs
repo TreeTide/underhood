@@ -13,6 +13,7 @@
 
 import           Protolude               hiding ( groupBy )
 
+import Control.Monad.Except (liftEither)
 import           Control.Monad.Free
 --import qualified Data.ByteString.Base64        as Base64
 --import           Data.Default                   ( def )
@@ -21,6 +22,7 @@ import qualified Data.List.NonEmpty            as NE
 import Data.Int (Int64)
 --import qualified Data.Map                      as M
 import qualified Data.Text                     as T
+import qualified Data.Text.Offset as TOfs
 import qualified Database.PostgreSQL.Simple.Extended as PG
 import qualified Data.Text.Encoding            as T
 import qualified Data.Text.Encoding.Error      as T
@@ -193,51 +195,82 @@ filesToSubtree fs =
                   , Api.children = maybeToList sub
                   }
 
+noteMay :: e -> Maybe a -> Either e a
+noteMay e Nothing = Left $! e
+noteMay _ (Just a) = Right $! a
+
+textToServerError :: ExceptT Text IO a -> ExceptT ServerError IO a
+textToServerError = withExceptT (\e -> err503 { errBody = toS e })
+
 server :: Options -> PG.PgPool -> Server ServedApi
 server opts pool =
     serveFileTree :<|> serveSource :<|> serveDecors :<|> serveDoc :<|> serveXRef
   where
-    --
-    serveFileTree = Handler . ExceptT . liftIO $ do
-      files <- PG.queryPool_ pool "SELECT crp, corpus, root, path FROM crp"
-      pure (Right $! filesToSubtree files)
- 
-    serveSource :: Server Api.SourceApi
-    serveSource mbRawTicket _mbPreview =
-        Handler . ExceptT . liftIO $ case mbRawTicket of
-            Nothing ->
-                return . Left $ err503 { errBody = "Missing query parameter." }
-            Just rawTicket -> do
-              let kytheUri = K.KytheUri rawTicket
-              case K.kytheUriToDirectoryRequest kytheUri of
-                Nothing ->
-                  return . Left $ err503 { errBody = "Couldn't decode kythe uri" }
-                Just dirReq -> do
-                  print dirReq
-                  res <- PG.singleOnly <$> PG.queryPool pool "SELECT crp FROM crp WHERE corpus = ? AND root = ? AND path = ?"
+
+    kytheUriToCrp :: K.KytheUri -> ExceptT Text IO Int64
+    kytheUriToCrp kytheUri = do
+        case K.kytheUriToDirectoryRequest kytheUri of
+          Nothing -> throwError "Couldn't decode kythe uri"
+          Just dirReq -> do
+            print dirReq
+            res <- liftIO (PG.singleOnly <$> PG.queryPool pool "SELECT crp FROM crp WHERE corpus = ? AND root = ? AND path = ?"
                       (K.unCorpus . K.corpus'DirReq $ dirReq
                       -- can it ever be null for real?
                       ,maybe "" K.unRoot (K.root'DirReq dirReq)
                       ,K.unPath <$> (K.path'DirReq $ dirReq)
-                      )
-                  case res of
-                      Nothing ->
-                        return . Left $ err503 { errBody = "Couldn't find crp hash for file." }
-                      Just (crp :: Int64) -> do
-                        mbBytes <- PG.singleOnly <$> PG.queryPool pool "SELECT content FROM file WHERE crp = ?"
-                           (PG.Only crp)
-                        case mbBytes of
-                            Nothing ->
-                              return . Left $ err503 { errBody = "Couldn't find content for file." }
-                            Just bytes ->
-                              let src = T.decodeUtf8With T.lenientDecode bytes
-                              in pure (Right src)
+                      ))
+            case res of
+                Nothing -> throwError "Couldn't find crp hash for file."
+                Just crp -> pure crp
+
+    fetchCrpContent :: Int64 -> ExceptT Text IO Text
+    fetchCrpContent crp = do
+        mbBytes <- liftIO (PG.singleOnly <$> PG.queryPool pool "SELECT content FROM file WHERE crp = ?"
+                 (PG.Only crp))
+        case mbBytes of
+            Nothing -> throwError "Couldn't find content for file."
+            Just bytes -> pure $ T.decodeUtf8With T.lenientDecode bytes
+
+    --
+    serveFileTree = Handler $ do
+        files <- liftIO $ PG.queryPool_ pool "SELECT crp, corpus, root, path FROM crp"
+        pure (filesToSubtree files)
+
+    serveSource :: Server Api.SourceApi
+    serveSource mbRawTicket _mbPreview = Handler . textToServerError $ do
+        rawTicket <- liftEither (noteMay "Missing query parameter" mbRawTicket)
+        crp <- kytheUriToCrp (K.KytheUri rawTicket)
+        fetchCrpContent crp
 
     serveDecors :: Server Api.DecorApi
-    serveDecors mbRawTicket = Handler . ExceptT . liftIO $ case mbRawTicket of
-        Nothing ->
-            return . Left $ err503 { errBody = "Missing query parameter." }
-        Just _rawTicket -> panic "implement decors"
+    serveDecors mbRawTicket = Handler . textToServerError $ do
+        rawTicket <- liftEither (noteMay "Missing query parameter" mbRawTicket)
+        -- TODO(robinp): cache line offsets to DB, instead of fetching source
+        -- here again?
+        crp <- kytheUriToCrp (K.KytheUri rawTicket)
+        content <- fetchCrpContent crp
+        let tab = TOfs.createOffsetTable (toS content)
+        res <- liftIO (PG.queryPool pool "SELECT a.bs, a.be, e.tcrp, e.tsigl FROM anchor a JOIN anchor_edge e USING(crp,sigl) WHERE bs IS NOT NULL AND be IS NOT NULL AND crp = ?" (PG.Only crp))
+        -- TODO(robinp): terrible O(n^2) behavior, could just get all distinct
+        -- positions in one linear scan.
+        let (bads, goods) = partitionEithers (map (rowToDecor tab) res)
+        if null bads
+            then pure Api.DecorReply { Api.decors = goods }
+            else throwError $ "Error converting positions: " <> show bads
+      where
+        rowToDecor tab (bs::Int, be::Int, tcrp::Int64, tsigl::Int64) = do
+          start <- mkPoint tab bs
+          end <- mkPoint tab be
+          Right $! Api.Decor
+              { Api.dTarget = "hash:" <> show tcrp <> ":" <> show tsigl
+              , Api.dStart = start
+              , Api.dEnd = end
+              , Api.dSpan = Nothing
+              }
+        mkPoint tab bytePos =
+            case TOfs.byteOffsetToLineCol tab bytePos of
+                Just (TOfs.LineCol l c) -> Right $! Api.CmPoint { Api.line = l, Api.ch = c }
+                Nothing -> Left bytePos
 
     serveDoc :: Server Api.DocApi
     serveDoc mbRawTicket = Handler . ExceptT . liftIO $ case mbRawTicket of

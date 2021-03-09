@@ -56,6 +56,7 @@ haskell_binary(
     deps = [
         ":types",
         "//treetide/haskell:pg_pool",
+        "//treetide/thirdparty/haskell:text-offset",
         "//treetide/underhood/kythe_api",
         "//treetide/underhood/kythe_api:convert",
         "//treetide/underhood:frontend_api",
@@ -68,6 +69,7 @@ haskell_binary(
         prebuilt("deriving-compat"),
         prebuilt("free"),
         prebuilt("groom"),
+        prebuilt("mtl"),
         prebuilt("protolude"),
         prebuilt("recursion-schemes"),
         prebuilt("servant-server"),
@@ -77,9 +79,11 @@ haskell_binary(
     ],
 )
 
+# LC_ALL=C.UTF-8 ghcid -W -c 'bazel run -c opt treetide/underhood/frontend_server:frontend_server_postgres_repl' -T ':main --postgres_conn_string postgresql:///kydb?host=/mnt/data/pyurlex/postgres/postgres'
 haskell_repl(
     name = "frontend_server_postgres_repl",
     deps = [
+        "//treetide/thirdparty/haskell:text-offset",
         ":frontend_server_postgres",
     ]
 )

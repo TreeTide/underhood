@@ -68,6 +68,7 @@ in haskellPackages.ghcWithPackages (p: with p; [
   tasty-silver
   text-format
   text-icu
+  # (callPackage ./treetide/thirdparty/haskell/text-offset.nix {})
   time
   unix
   unliftio-core
