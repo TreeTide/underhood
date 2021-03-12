@@ -241,6 +241,11 @@ server opts pool =
                 Nothing -> throwError "Couldn't find crp hash for file."
                 Just crp -> pure crp
 
+    rawTicketToCrp :: Text -> ExceptT Text IO Int64
+    rawTicketToCrp t = case parseHashTicket t of
+        Nothing -> kytheUriToCrp (K.KytheUri t)
+        Just ht -> pure (htCrp ht)
+
     fetchCrpContent :: Int64 -> ExceptT Text IO Text
     fetchCrpContent crp = do
         mbBytes <- liftIO (PG.singleOnly <$> PG.queryPool pool "SELECT content FROM file WHERE crp = ?"
@@ -257,7 +262,7 @@ server opts pool =
     serveSource :: Server Api.SourceApi
     serveSource mbRawTicket _mbPreview = Handler . textToServerError $ do
         rawTicket <- liftEither (noteMay "Missing query parameter" mbRawTicket)
-        crp <- kytheUriToCrp (K.KytheUri rawTicket)
+        crp <- rawTicketToCrp rawTicket
         fetchCrpContent crp
 
     serveDecors :: Server Api.DecorApi
@@ -265,7 +270,7 @@ server opts pool =
         rawTicket <- liftEither (noteMay "Missing query parameter" mbRawTicket)
         -- TODO(robinp): cache line offsets to DB, instead of fetching source
         -- here again?
-        crp <- kytheUriToCrp (K.KytheUri rawTicket)
+        crp <- rawTicketToCrp rawTicket
         content <- fetchCrpContent crp
         let tab = TOfs.createOffsetTable (toS content)
         res <- liftIO (PG.queryPool pool "SELECT a.bs, a.be, e.tcrp, e.tsigl FROM anchor a JOIN anchor_edge e USING(crp,sigl) WHERE bs IS NOT NULL AND be IS NOT NULL AND crp = ?" (PG.Only crp))
