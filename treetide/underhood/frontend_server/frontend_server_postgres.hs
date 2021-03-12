@@ -195,6 +195,24 @@ filesToSubtree fs =
                   , Api.children = maybeToList sub
                   }
 
+data HashTicket = HashTicket
+    { htCrp :: Int64
+    , htSigl :: Int64
+    }
+    deriving (Eq, Ord, Show)
+
+parseHashTicket :: Text -> Maybe HashTicket
+parseHashTicket t = do
+    let parts = T.splitOn ":" t
+    guard (length parts == 3)
+    let [_, tc, ts] = parts
+    crp <- readMaybe (toS tc)
+    sigl <- readMaybe (toS ts)
+    Just $! HashTicket { htCrp = crp, htSigl = sigl }
+
+renderHashTicket :: HashTicket -> Text
+renderHashTicket ht = "hash:" <> show (htCrp ht) <> ":" <> show (htSigl ht)
+
 noteMay :: e -> Maybe a -> Either e a
 noteMay e Nothing = Left $! e
 noteMay _ (Just a) = Right $! a
@@ -279,10 +297,37 @@ server opts pool =
         Just _rawTicket -> panic "implement docs"
 
     serveXRef :: Server Api.XRefApi
-    serveXRef mbRawTicket = Handler . ExceptT . liftIO $ case mbRawTicket of
-        Nothing ->
-            return . Left $ err503 { errBody = "Missing query parameter." }
-        Just _rawTicket -> panic "implement xrefs"
+    serveXRef mbRawTicket = Handler . textToServerError $ do
+        rawTicket <- liftEither (noteMay "Missing query parameter" mbRawTicket)
+        ht <- liftEither . noteMay "Not a hash ticket" . parseHashTicket $ rawTicket
+        res <- liftIO (PG.queryPool pool "SELECT a.crp, a.sigl, a.bs, a.be, e.ekind, crp.corpus, crp.root, crp.path FROM anchor a JOIN anchor_edge e USING(crp,sigl) JOIN crp USING (crp) WHERE bs IS NOT NULL AND be IS NOT NULL AND tcrp = ? AND tsigl = ?" ((htCrp ht, htSigl ht)))
+        pure Api.XRefReply
+            { Api.refs = map toSite res
+            , Api.refCount = length res
+            , Api.calls = []
+            , Api.callCount = 0
+            , Api.definitions = []
+            , Api.declarations = []
+            }
+      where
+        toSite (crp::Int64, sigl::Int64, bs::Int, be::Int, ekind::Int, corpus::Text, root::Text, path::Text) =
+          let ht = HashTicket { htCrp = crp, htSigl = sigl }
+          in Api.Site {
+            Api.sContainingFile = Api.DisplayedFile
+                { Api.dfFileTicket = renderHashTicket ht
+                , Api.dfDisplayName = corpus <> ":" <> root <> "/" <> path
+                }
+            , Api.sSnippet = Api.Snippet
+                { Api.snippetText = "foobar"
+                , Api.snippetFullSpan = aSpan
+                , Api.snippetOccurrenceSpan = aSpan
+                }
+          }
+        aSpan = Api.CmRange
+            { Api.from = Api.CmPoint { Api.line = 1, Api.ch = 1 }
+            , Api.to = Api.CmPoint { Api.line = 1, Api.ch = 5 }
+            }
+
 
 data Options = Options
     { oPort :: Int
