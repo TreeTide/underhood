@@ -36,6 +36,7 @@
         <References
             :bus="mkRefBus"
             :ticket="refTicket"
+            :ref-data="refData"
             :highlight-mode="cmOptions.mode"
             :highlight-style="cmOptions.theme" />
         <div :class="'uh-background refs-filler'" />
@@ -46,6 +47,7 @@
 
 <script>
 import axios from 'axios';
+import Vue from 'vue';
 //
 import CodeMirror from 'codemirror';
 import 'codemirror/lib/codemirror.css';
@@ -261,6 +263,7 @@ export default {
       nodes: null,
       code: '// Please wait for filenav to load on the left and select file.',
       refTicket: null,
+      refData: null,
       renderedTicket: null,
       cmOptions: {
         mode: 'text/x-go',
@@ -303,6 +306,7 @@ export default {
 
       cm.on('mousedown', this.onCmMouseDown);
       cm.on('touchstart', this.onCmTouchStart);
+      cm.on('keydown', this.onCmKeyDown);
       const thiz = this;
       cm.getWrapperElement().addEventListener('mousemove', _.debounce(
         function(e) {
@@ -332,11 +336,59 @@ export default {
     onCmScroll (cm) {
       looseLog(cm);
     },
-    onCmViewportChange (e) {
+    onCmViewportChange (cm, e) {
       console.log('viewport-change', e);
     },
-    onCmMouseDown (e) {
+    onCmMouseDown (cm, e) {
       console.log('mouse-down', e);
+      if (e.ctrlKey) {
+        let lineCh = cm.coordsChar({
+          left: e.clientX,
+          top: e.clientY,
+        }, "window");
+        let w = cm.findWordAt(lineCh);
+        let r = cm.getRange(w.anchor, w.head);
+        console.log("ctrl-click on word", "[" + r + "]");
+        this._startSearchXref(r);
+      }
+    },
+    onCmKeyDown (cm, e) {
+      const selText = this.codemirror.getSelection().trim();
+      console.log('key-down', e, "[" + selText + "]");
+      // TODO configurable key.
+      if (selText.length > 0 && e.code == "KeyB") {
+        this._startSearchXref(selText);
+      }
+    },
+    _startSearchXref(toSearch) {
+      // Trigger a selection-based search.
+      // TODO set spinner on refs?
+      axios.get('/api/search-xref', {
+        params: {
+          selection: toSearch,
+          // TODO add more context, like ticket, line of selection
+        },
+        // TODO cancelToken / canceller
+      })
+        .then(response => {
+          console.log('updating refData')
+          this.refData = {
+            refCount: response.data.refCount,
+            refs: response.data.refs,
+            callCount: response.data.callCount,
+            calls: response.data.calls,
+            definitions: response.data.definitions,
+            declarations: response.data.declarations,
+          };
+        })
+        .catch(err => {
+          if (!axios.isCancel(err)) {
+            console.log(err);
+          }
+        }).then(() => {
+          // remove canceller
+          // remove spinner?
+        });
     },
     onCmTouchStart (e) {
       console.log('touch-start', e);
@@ -403,9 +455,26 @@ export default {
     _removeXRefHighlight() {
       clearHighlightMarkers(this.codemirror);
     },
+    // Give back focus to main codemirror, so search and keyboard shortcuts
+    // can be triggered.
+    _giveBackFocus() {
+      this.codemirror.focus();
+    },
     onNavClick (id) {
-      const ticket = RH.idUnescape(id);
+      const ticket = id;
       this._loadSource(ticket);
+      this._giveBackFocus();
+    },
+    onLoadMoreTree(id, model, maybeContinuation) {
+      console.log("fetching filetree", id)
+      axios.get('/api/filetree?top=' + id)  // TODO pass as param
+        .then(response => {
+          this.$set(model, "children", RH.fileTreeToNav(response.data).children);
+          if (maybeContinuation) {
+            maybeContinuation(model);
+          }
+        })
+        .catch(err => console.log(err));
     },
     onTheme (theme) {
       this.cmOptions.theme = theme;
@@ -416,23 +485,38 @@ export default {
       console.log('should open', filePath);
       let parts = filePath.split("/");
       let i = 0;
-      let cur = this.nodes;
-      while (cur && cur.children && cur.children.length > 0) {
-        for (let c of cur.children) {
-          if (c.name == parts[i]) {
-            console.log('found', c.name);
-            c.open = true;
-            i += 1;
-            if (i == parts.length) {
-              console.log('hiliting', c.name);
-              c.highlight = true;
+      let go = (cur, k) => {
+        if (cur.isFile) return;
+        if (cur.children == null) {
+          // Need to make network trip to API, since this part of tree is not
+          // yet loaded. Will call back to this function with the node where
+          // children are now present.
+          this.onLoadMoreTree(cur.id, cur, (c) => go(c,k));
+        } else {
+          for (let c of cur.children) {
+            if (c.name == parts[i]) {
+              console.log('found', c.name);
+              c.open = true;
+              i += 1;
+              if (i == parts.length) {
+                k(c);
+              } else {
+                go(c, k);
+              }
+              return;
             }
-            cur = c;
-            break;
           }
-          cur = null;
         }
       }
+      // Need nextTick in continuation, since 'go' potentially sets the
+      // recursive model, and this is the first chance for Vue to observe its
+      // properties.  So if we want FileTree's watcher to detect the change in
+      // highlight, we need to defer that update.
+      go(this.nodes, (c) => Vue.nextTick(() => {
+        console.log('hiliting', c.name);
+        c.highlight = true;
+        this._giveBackFocus();
+      }));
     },
     _loadSource (ticket, mbLineToFocus) {
       if (this.renderedTicket == ticket) {
@@ -535,6 +619,7 @@ export default {
     mkNavBus () {
       return {
         onClick: this.onNavClick,
+        onLoadMoreTree: this.onLoadMoreTree,
       }
     },
     // Note: will be gone for vuex eventually.

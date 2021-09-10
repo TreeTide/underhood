@@ -1,6 +1,6 @@
 <template>
   <div :class="_refPanelClasses">
-    <div v-if="ticket">
+    <div v-if="ticket || refData">
       <div v-if="!loading">
         <div v-if="_exists(declarations)">
           <div :class="_refHeadingClasses">Declarations</div>
@@ -99,7 +99,12 @@ function _lineColString(p) {
 export default {
   props: {
     bus: Object,
+    // The ticket to look up references for.
     ticket: String,
+    // Refdata passed in directly.
+    // TODO: eventually move ticket xref fetch logic outside, and pass that in
+    //   as refData as well.
+    refData: Object,
     highlightMode: String,
     highlightStyle: String,
   },
@@ -189,7 +194,9 @@ export default {
       // through the bus too.
       // TODO: dfDisplayName is not the file-tree-mapped name, so can't be
       // directly used to open / highlight the filetree.
-      this.bus.onRefClick(r.sContainingFile.dfDisplayName);
+      // HACK: replace ":" with "/" for now, which will help zoekt-based
+      // tickets to be opened. Still need to find a nicer way.
+      this.bus.onRefClick(r.sContainingFile.dfDisplayName.replace(":", "/"));
     },
     _exists(v) {
       return v != null && (v.length == undefined || v.length > 0);
@@ -278,6 +285,18 @@ export default {
   watch: {
     ticket (t) {
       this._fetchReferences(t);
+    },
+    refData (d) {
+      console.log('refData update', d);
+      if (d == null) {
+        return;
+      }
+      this.refCount = d.refCount;
+      this.callCount = d.callCount;
+      this.refs = d.refs;
+      this.calls = d.calls;
+      this.definitions = d.definitions;
+      this.declarations = d.declarations;
     },
   },
   created () {

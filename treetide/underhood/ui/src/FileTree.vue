@@ -6,7 +6,7 @@
       @mouseover="onHover"
       @mouseout="onHoverDone">
       <!-- Note: cm-... arbitrarily picked for generated. Could add indirection here. -->
-      <span :class="{'cm-string': isGenerated, 'cm-keyword': isHighlight}">{{ model.name }}</span>
+      <span ref="nameItem" :class="{'cm-string': isGenerated, 'cm-keyword': isHighlight}">{{ model.name }}</span>
       <span v-if="isDir">[{{ isOpen ? '-' : '+' }}]</span>
     </div>
     <div class="subs" v-show="isOpen" v-if="isDir">
@@ -21,9 +21,9 @@
 
 <script>
 
-function _isDir(model) {
-  return model.children && model.children.length;
-}
+let state = {
+  hilitTree: null,
+};
 
 export default {
   name: "file-tree",
@@ -41,13 +41,30 @@ export default {
       return this.model.open;
     },
     isDir () {
-      return _isDir(this.model);
+      return !this.model.isFile;
+    },
+    canExpand () {
+      return this.model.children == null || this.model.children.length > 0;
     },
     isGenerated () {
       return this.model.onlyGenerated;
     },
     isHighlight() {
       return this.model.highlight;
+    },
+  },
+  watch: {
+    // Watch the computed item to properly get subprop changes, without
+    // installing a too deep watcher.
+    'model.highlight': function(v) {
+      console.log("=== highlight change", v, this, state.hilitTree, state.hilitTree == null ? "null" : state.hilitTree.highlight);
+      if (!v) return;
+      // Unhighlight any previous.
+      if (state.hilitTree != null) {
+        state.hilitTree.highlight = false;
+      }
+      state.hilitTree = this.model;
+      this.$refs.nameItem.scrollIntoView({block: "center"});
     },
   },
   methods: {
@@ -62,6 +79,10 @@ export default {
     onClick () {
       if (this.isDir) {
         this.$set(this.model, 'open',  !this.model.open);
+        if (this.model.children == null) {
+          this.bus.onLoadMoreTree(this.model.id, this.model);
+        }
+        /*
         if (this.model.open) {
           // Recursively open while there's only a single child dir.
           let curDir = this.model;
@@ -70,6 +91,7 @@ export default {
             this.$set(curDir, 'open', true);
           }
         }
+        */
       } else {
         this.bus.onClick(this.model.id)
         // TODO trigger refClick?
