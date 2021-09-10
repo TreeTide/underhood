@@ -3,5 +3,9 @@
 .uh-s-darcula .uh-color-inverted { color: #2B2B2B !important ; }
 .uh-s-darcula .uh-background-inverted { background: #A9B7C6 !important ; }
 .uh-s-darcula .uh-activeline-background { background: #323232; }
+.uh-s-darcula .splitpanes--vertical > .splitpanes__splitter { border-left: 2px solid #313335 !important }
+.uh-s-darcula .splitpanes--horizontal > .splitpanes__splitter { border-top: 2px solid #313335 !important }
 .uh-s-darcula .uh-linenumber {  color: #606366; }
 .uh-s-darcula .uh-selected-background { background: #214283; }
+.uh-s-darcula .splitpanes--vertical > .splitpanes__splitter { background: #214283 !important }
+.uh-s-darcula .splitpanes--horizontal > .splitpanes__splitter { background: #214283 !important }

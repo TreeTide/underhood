@@ -1,6 +1,10 @@
+.uh-s-zenburn .splitpanes--vertical > .splitpanes__splitter { border-left: 2px solid #3f3f3f !important !important }
+.uh-s-zenburn .splitpanes--horizontal > .splitpanes__splitter { border-top: 2px solid #3f3f3f !important !important }
 .uh-s-zenburn .uh-background { background-color: #3f3f3f; }
 .uh-s-zenburn .uh-color {  color: #dcdccc; }
 .uh-s-zenburn .uh-color-inverted { color: #3f3f3f !important ; }
 .uh-s-zenburn .uh-background-inverted { background: #dcdccc !important ; }
 .uh-s-zenburn .uh-activeline-background { background: #000000; }
 .uh-s-zenburn .uh-selected-background { background: #545454; }
+.uh-s-zenburn .splitpanes--vertical > .splitpanes__splitter { background: #545454 !important }
+.uh-s-zenburn .splitpanes--horizontal > .splitpanes__splitter { background: #545454 !important }

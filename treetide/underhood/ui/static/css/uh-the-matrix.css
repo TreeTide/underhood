@@ -3,6 +3,10 @@
 .uh-s-the-matrix .uh-color-inverted { color: #000000 !important ; }
 .uh-s-the-matrix .uh-background-inverted { background: #00FF00 !important ; }
 .uh-s-the-matrix .uh-selected-background { background: #2D2D2D; }
+.uh-s-the-matrix .splitpanes--vertical > .splitpanes__splitter { background: #2D2D2D !important }
+.uh-s-the-matrix .splitpanes--horizontal > .splitpanes__splitter { background: #2D2D2D !important }
 .uh-s-the-matrix .uh-selection-background { background: rgba(45, 45, 45, 0.99); }
+.uh-s-the-matrix .splitpanes--vertical > .splitpanes__splitter { border-left: 2px solid #060 !important }
+.uh-s-the-matrix .splitpanes--horizontal > .splitpanes__splitter { border-top: 2px solid #060 !important }
 .uh-s-the-matrix .uh-linenumber {  color: #FFFFFF; }
 .uh-s-the-matrix .uh-activeline-background { background: #040; }

@@ -9,3 +9,12 @@
 .uh-s-solarized-light .uh-selection-background { background: #eee8d5; }
 .uh-s-solarized-light .uh-activeline-background { background: rgba(0, 0, 0, 0.06); }
 .uh-s-solarized-light .uh-linenumber { color: #839496; }
+
+.uh-s-solarized-light .splitpanes--vertical > .splitpanes__splitter {
+  background: #eee8d5 !important;
+  border-left: 1px solid #657b83 !important;
+}
+.uh-s-solarized-light .splitpanes--horizontal > .splitpanes__splitter {
+  background: #eee8d5 !important;
+  border-top: 1px solid #657b83 !important;
+}
