@@ -18,9 +18,11 @@ with rec {
         # pkgs.removeReferencesTo
       ];
 
+      # TODO --mode production outputs files, but chokes. Possibly some webpack
+      #     misconfiguration.
       buildCommand = ''
         cd $src/lib/node_modules/underhood-ui;
-        ./node_modules/webpack/bin/webpack.js --mode production --output-path $out
+        ./node_modules/webpack/bin/webpack.js --mode development --output-path $out
 
         # Hack to remove some Vue-injected source paths, so node stuff won't be
         # picked up as runtime dependency. See
