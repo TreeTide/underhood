@@ -493,8 +493,18 @@ export default {
           // children are now present.
           this.onLoadMoreTree(cur.id, cur, (c) => go(c,k));
         } else {
+          // TODO eventually store in map if gets slow? Below edge-case makes
+          //  that slightly more cumbersome.
           for (let c of cur.children) {
+            // Edge-case: paths at top-level of tree can contain slash-separated
+            // parts. Zoekt-underhood returns the repos at the top level, and
+            // the repo name can contain slashes.
+            //
+            // Arguably zoekt-underhood could preprocess the repos into a tree,
+            // but let's see.
+            console.log(c.name, i, parts[i])
             if (c.name == parts[i]) {
+              // Normal case
               console.log('found', c.name);
               c.open = true;
               i += 1;
@@ -504,6 +514,22 @@ export default {
                 go(c, k);
               }
               return;
+            } else if (i == 0 && c.name.startsWith(parts[i])) {
+              // Maybe repo edge-case
+              const repoParts = c.name.split("/");
+              let allMatch = true;
+              for (let j = 0; j < repoParts.length; ++j) {
+                if (repoParts[j] != parts[i+j]) {
+                  allMatch = false;
+                  break;
+                }
+              }
+              if (allMatch) {
+                console.log('found slashy', c.name)
+                c.open = true;
+                i += repoParts.length;
+                go(c, k);
+              }
             }
           }
         }
@@ -556,8 +582,9 @@ export default {
           this.$nextTick(function() {
             console.log('codemirror rendered in', Date.now() - start, Date.now());
           });
-          // TODO open and scroll the filetree to the source we navigated to,
-          //   maybe gated by a setting
+          // TODO open and scroll the filetree to the source we navigated to?
+          //   Now that happens on explicit Ref click, but might make more sense
+          //   to it from here.
           console.log('fetch-decors');
           axios.get('/api/decor', {
                   params: { ticket }

@@ -183,6 +183,8 @@ export default {
     },
 
     onClick(r) {
+      // Note: this router handling could move to app, passing params
+      // through the bus too.
       this.$router.push({
         name: 'file',
         params: {
@@ -190,12 +192,12 @@ export default {
           line: this._refVisualLine(r),
         },
       });
-      // Note: the above router handling could move to app, passing params
-      // through the bus too.
+
       // TODO: dfDisplayName is not the file-tree-mapped name, so can't be
       // directly used to open / highlight the filetree.
       // HACK: replace ":" with "/" for now, which will help zoekt-based
       // tickets to be opened. Still need to find a nicer way.
+      // (Actually having to map this is not that bad).
       this.bus.onRefClick(r.sContainingFile.dfDisplayName.replace(":", "/"));
     },
     _exists(v) {

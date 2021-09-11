@@ -57,7 +57,6 @@ export default {
     // Watch the computed item to properly get subprop changes, without
     // installing a too deep watcher.
     'model.highlight': function(v) {
-      console.log("=== highlight change", v, this, state.hilitTree, state.hilitTree == null ? "null" : state.hilitTree.highlight);
       if (!v) return;
       // Unhighlight any previous.
       if (state.hilitTree != null) {
