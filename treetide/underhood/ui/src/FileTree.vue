@@ -79,22 +79,21 @@ export default {
     onClick () {
       if (this.isDir) {
         this.$set(this.model, 'open',  !this.model.open);
-        if (this.model.children == null) {
-          this.bus.onLoadMoreTree(this.model.id, this.model);
-        }
-        /*
-        if (this.model.open) {
-          // Recursively open while there's only a single child dir.
-          let curDir = this.model;
-          while (curDir.children.length == 1 && _isDir(curDir.children[0])) {
-            curDir = curDir.children[0];
-            this.$set(curDir, 'open', true);
+        let openWhileSingle = (model) => {
+          if (!model.open) return;
+          if (model.children == null) {
+            this.bus.onLoadMoreTree(model.id, model, openWhileSingle);
+            return;
           }
-        }
-        */
+          if (model.children.length == 1 && !model.children[0].isFile) {
+            let next = model.children[0];
+            this.$set(next, 'open', true);
+            openWhileSingle(next);
+          }
+        };
+        openWhileSingle(this.model);
       } else {
         this.bus.onClick(this.model.id)
-        // TODO trigger refClick?
       }
     },
   },
