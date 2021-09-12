@@ -24,6 +24,7 @@ and build into js using
 
 ```
 nix-build -I tt=/path/to/underhood -A static_resources
+find ../../../distrib/ui/ -type f | xargs chmod 644
 cp -r result/* ../../../distrib/ui/
 ```
 
