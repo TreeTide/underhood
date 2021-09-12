@@ -466,8 +466,10 @@ export default {
       this._giveBackFocus();
     },
     onLoadMoreTree(id, model, maybeContinuation) {
-      console.log("fetching filetree", id)
-      axios.get('/api/filetree?top=' + id)  // TODO pass as param
+      // HACK - see [branch version]
+      const versionlessId = id.split("@")[0]
+      console.log("fetching filetree", id, versionlessId)
+      axios.get('/api/filetree?top=' + versionlessId)  // TODO pass as param
         .then(response => {
           this.$set(model, "children", RH.fileTreeToNav(response.data).children);
           if (maybeContinuation) {
@@ -516,7 +518,11 @@ export default {
               return;
             } else if (i == 0 && c.name.startsWith(parts[i])) {
               // Maybe repo edge-case
-              const repoParts = c.name.split("/");
+              // HACK: remove the @version part from the end for now, until
+              //   the ref click supplies the specific version too.
+              //   See [branch version]
+              const versionlessName = c.name.split("@")[0]
+              const repoParts = versionlessName.split("/");
               let allMatch = true;
               for (let j = 0; j < repoParts.length; ++j) {
                 if (repoParts[j] != parts[i+j]) {

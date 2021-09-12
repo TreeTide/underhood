@@ -198,6 +198,9 @@ export default {
       // HACK: replace ":" with "/" for now, which will help zoekt-based
       // tickets to be opened. Still need to find a nicer way.
       // (Actually having to map this is not that bad).
+      //
+      // TODO: [branch version] Need to pass the name/version of the repo
+      // branch as well, so UI can properly identify among multiple repos
       this.bus.onRefClick(r.sContainingFile.dfDisplayName.replace(":", "/"));
     },
     _exists(v) {
