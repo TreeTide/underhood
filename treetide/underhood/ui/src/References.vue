@@ -1,5 +1,5 @@
 <template>
-  <div :class="_refPanelClasses">
+  <div :class="_refPanelClasses" ref="topElemRef">
     <div v-if="ticket || refData">
       <div v-if="!loading">
         <div v-if="_exists(declarations)">
@@ -302,6 +302,7 @@ export default {
       this.calls = d.calls;
       this.definitions = d.definitions;
       this.declarations = d.declarations;
+      this.$refs.topElemRef.scrollIntoView({block: "start"});
     },
   },
   created () {

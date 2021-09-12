@@ -366,7 +366,7 @@ export default {
       axios.get('/api/search-xref', {
         params: {
           selection: toSearch,
-          // TODO add more context, like ticket, line of selection
+          ticket: this.renderedTicket,
         },
         // TODO cancelToken / canceller
       })
