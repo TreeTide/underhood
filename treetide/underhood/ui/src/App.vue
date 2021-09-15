@@ -360,15 +360,26 @@ export default {
         this._startSearchXref(selText, e.shiftKey);
       }
     },
-    _startSearchXref(toSearch, ignoreCase) {
+    _startSearchXref(toSearch, invertCaseBehavior) {
       // Trigger a selection-based search.
-      if (ignoreCase) {
-        toSearch = toSearch.toLowerCase();
+      // We interpret 'toSearch' casing in a Zoekt-compatible way:
+      //
+      //  - small caps means ignore case
+      //  - mixed/upper caps means keep case
+      //
+      // If invertCaseBehavior is true, will explicitly request opposite
+      // Zoekt case behavior.
+      let zoektCase = "auto";
+      if (invertCaseBehavior) {
+        let lowered = toSearch.toLowerCase();
+        let wasIgnoreCase = toSearch == lowered;
+        zoektCase = wasIgnoreCase ? "yes" : "no";
       }
       // TODO set spinner on refs?
       axios.get('/api/search-xref', {
         params: {
           selection: toSearch,
+          casing: zoektCase,
           ticket: this.renderedTicket,
         },
         // TODO cancelToken / canceller
