@@ -112,6 +112,6 @@ export default {
 }
 .dir {
   padding-top: 1px;
-  font-weight: bold;
+  font-weight: normal;
 }
 </style>

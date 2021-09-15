@@ -1,7 +1,8 @@
 <template>
-    <div class="uh-background">
-      <div><span class="cm-keyword">{{currentTicket}}</span></div>
-      <select v-model="theme">
+    <div class="topHeader uh-background">
+      <span id="spacer1"></span>
+      <input id="searchBar" type="text" class="uh-selected-background uh-color" />
+      <select id="themeSelect" v-model="theme" class="uh-background uh-color">
         <option>zenburn</option>
         <option>monokai</option>
         <option>idea</option>
@@ -34,9 +35,18 @@ export default {
 }
 </script>
 
-<style scoped>
-  div {
+<style>
+  .topHeader {
     display: flex;
-    justify-content: center;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    /* TODO generate themed style */
+    border-bottom: 1px solid grey;
+  }
+  #searchBar {
+    width: 50%;
+  }
+  #themeSelect {
   }
 </style>

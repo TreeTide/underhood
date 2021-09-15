@@ -1,12 +1,12 @@
 <template>
   <div :class="_appClasses">
     <!-- TODO(robinp): better automated sizing between header and rest -->
-    <Header class="header" :current-ticket="renderedTicket" :bus="mkThemeBus" />
+    <Header id="header" :current-ticket="renderedTicket" :bus="mkThemeBus" />
     <splitpanes horizontal class="default-theme top-split"
         @resized="onTopSplitResized"
         @resize="onTopSplitResize"
         >
-      <pane :key="1" size="75">
+      <pane :key="1" :size="vPaneSize">
         <splitpanes class="default-theme">
           <pane :key="11" size="20" class="filetree-pane">
             <div v-if="nodes" class="uh-background uh-color fullHeight">
@@ -19,6 +19,7 @@
             </div>
           </pane>
           <pane :key="12" size="80" class="viewer-pane">
+            <div id="ticketDisplay" class="uh-background uh-color">{{renderedTicket}}</div>
             <codemirror class="viewer"
               :value="code"
               :options="cmOptions"
@@ -32,7 +33,7 @@
           </pane>
         </splitpanes>
       </pane>
-      <pane :key="2" size="25" class="refs-pane">
+      <pane :key="2" :size="100 - vPaneSize" class="refs-pane">
         <References
             :bus="mkRefBus"
             :ticket="refTicket"
@@ -278,6 +279,7 @@ export default {
         cursorBlinkRate: -1,
       },
       lastMirrorMouseEvent: null,
+      vPaneSize: 75,
     }
   },
   methods: {
@@ -301,9 +303,7 @@ export default {
       //
       // NOTE: it is important to keep this value fixed (that is, not auto).
       // See https://github.com/TreeTide/underhood/issues/21.
-      //
-      // TODO(robinp): take initial value from data maybe
-      this.onCodeMirrorHeightPercentage(75);
+      this.onCodeMirrorHeightPercentage(this.vPaneSize);
 
       cm.on('mousedown', this.onCmMouseDown);
       cm.on('touchstart', this.onCmTouchStart);
@@ -780,12 +780,19 @@ export default {
   background: white !important;
 }
 
-.header {
-  height: 2vh;
+#header {
+  height: 4vh;
+}
+#ticketDisplay {
+  display: flex;
+  justify-content: center;
+  /* TODO generate theme-fitting style */
+  border-bottom: 1px solid rgba(128,128,128,0.5);
 }
 .top-split {
   width: 100vw;
-  height: 98vh;
+  /* TODO would need +1 to max out, but then right scrollbar appears? */
+  height: 95vh;
 }
 
 .filetree-pane {

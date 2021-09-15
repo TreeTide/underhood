@@ -66,18 +66,19 @@
             </template>
             <template v-else>
               <div v-for="ref in ght.head.sSnippets">
-                <span class="clickableRef" @click="onClick(ght.head, ref)"><span :class="_refLineClasses">{{_refVisualLine2(ref)}}</span><span v-html="_formatRefSnippet2(ref)" /></span>
+                <div class="clickableRef" @click="onClick(ght.head, ref)"><span :class="_refLineClasses">{{_refVisualLine2(ref)}}</span><span v-html="_formatRefSnippet2(ref)" /></div>
               </div>
             </template>
           </div>
           <div v-if="ght.tail.length > 0" class="sameMatches">
-            <div v-for="fileSites in ght.tail">
+            <div v-for="fileSites in ght.tail"
+                class="clickableRef"
+                @click="onClick(fileSites, fileSites.sSnippets[0])">
               <span v-if="fileSites.sDupOfFile">(DUP)</span>
               <span v-else>(SNIP)</span>
-              <FileName style="display:inline-block"
+              <FileName style="display:inline"
                 :file-path="fileSites.sContainingFile.dfDisplayName"
-                :enable-icon="false"
-                class="clickableRef" @click="onClick(fileSites, fileSites.sSnippets[0])" />
+                :enable-icon="false" />
             </div>
           </div>
           <div class="sectionSpacer"/>
