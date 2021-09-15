@@ -51,22 +51,36 @@
           <div class="sectionSpacer"/>
         </div>
 
-        <div :class="_refHeadingClasses">References ({{ refCount }})</div>
-        <div v-for="group in refs">
-          <div v-for="fileSites in group.sFileSites">
+        <div :class="_refHeadingClasses">References<span v-if="refLineCount>0">: {{ refLineCount }} lines,
+            {{ refFileCount }} files<span v-if="refDupFileCount > 0"> ({{ refDupFileCount }} content dups<span v-if="refDupMatchCount > refDupFileCount"> + {{ refDupMatchCount-refDupFileCount }} match dups</span>)</span>
+          </span>
+        </div>
+        <div v-for="ght in groupedRefs">
+          <div> <!-- v-for="fileSites in group.sFileSites" -->
             <div :class="_refFileClasses">
-              <FileName :file-path="fileSites.sContainingFile.dfDisplayName" />
+              <FileName :file-path="ght.head.sContainingFile.dfDisplayName"
+                class="clickableRef" @click="onClick(ght.head, ght.head.sSnippets[0])" />
             </div>
-            <template v-if="fileSites.sDupOfFile">
-              <span class="clickableRef" @click="onClick(fileSites, fileSites.sSnippets[0])"><i>&nbsp;Dup of {{fileSites.sDupOfFile.dfDisplayName}}</i></span>
+            <template v-if="ght.head.sDupOfFile">
+              <span class="clickableRef" @click="onClick(ght.head, ght.head.sSnippets[0])"><i>&nbsp;Dup of {{ght.head.sDupOfFile.dfDisplayName}}</i></span>
             </template>
             <template v-else>
-              <div v-for="ref in fileSites.sSnippets">
-                <span class="clickableRef" @click="onClick(fileSites, ref)"><span :class="_refLineClasses">{{_refVisualLine2(ref)}}</span><span v-html="_formatRefSnippet2(ref)" /></span>
+              <div v-for="ref in ght.head.sSnippets">
+                <span class="clickableRef" @click="onClick(ght.head, ref)"><span :class="_refLineClasses">{{_refVisualLine2(ref)}}</span><span v-html="_formatRefSnippet2(ref)" /></span>
               </div>
             </template>
-            <div class="sectionSpacer"/>
           </div>
+          <div v-if="ght.tail.length > 0" class="sameMatches">
+            <div v-for="fileSites in ght.tail">
+              <span v-if="fileSites.sDupOfFile">(DUP)</span>
+              <span v-else>(SNIP)</span>
+              <FileName style="display:inline-block"
+                :file-path="fileSites.sContainingFile.dfDisplayName"
+                :enable-icon="false"
+                class="clickableRef" @click="onClick(fileSites, fileSites.sSnippets[0])" />
+            </div>
+          </div>
+          <div class="sectionSpacer"/>
         </div>
 
       </div>
@@ -120,7 +134,10 @@ export default {
   },
   data () {
     return {
-      refCount: 0,
+      refLineCount: 0,
+      refFileCount: 0,
+      refDupFileCount: 0,
+      refDupMatchCount: 0,
       callCount: 0,
       refs: [],
       calls: [],
@@ -144,6 +161,12 @@ export default {
     groupedDeclarations () {
       return _.mapValues(_.groupBy(this.declarations, siteContainerTicket),
         vs => _.sortBy(vs, v => this._refVisualLine(v)));
+    },
+    groupedRefs () {
+      return _.mapValues(this.refs, g => ({
+        head: g.sFileSites[0],
+        tail: _.tail(g.sFileSites),
+      }));
     },
     _refPanelClasses() {
       return ['uh-background uh-color'];
@@ -178,6 +201,7 @@ export default {
     },
 
     onClick(r, s) {
+      console.log("clicky", r, s);
       // Note: this router handling could move to app, passing params
       // through the bus too.
       this.$router.push({
@@ -270,7 +294,11 @@ export default {
         cancelToken: state.canceller.token,
       })
         .then(response => {
-          this.refCount = response.data.refCount;
+          const rc = response.data.refCounts;
+          this.refLineCount = rc.rcLines;
+          this.refFileCount = rc.rcFiles;
+          this.refDupFileCount = rc.rcDupFiles;
+          this.refDupMatchCount = rc.rcDupMatches;
           this.callCount = response.data.callCount;
           this.refs = response.data.refs;
           this.calls = response.data.calls;
@@ -293,11 +321,14 @@ export default {
       this._fetchReferences(t);
     },
     refData (d) {
-      console.log('refData update', d);
       if (d == null) {
         return;
       }
-      this.refCount = d.refCount;
+      const rc = d.refCounts;
+      this.refLineCount = rc.rcLines;
+      this.refFileCount = rc.rcFiles;
+      this.refDupFileCount = rc.rcDupFiles;
+      this.refDupMatchCount = rc.rcDupMatches;
       this.callCount = d.callCount;
       this.refs = d.refs;
       this.calls = d.calls;
@@ -344,5 +375,11 @@ export default {
 }
 .tinyIcon {
   height: 12px;
+}
+
+.sameMatches {
+  margin-top: 5px;
+  margin-left: 10px;
+  font-style: oblique;
 }
 </style>

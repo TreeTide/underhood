@@ -373,7 +373,7 @@ export default {
         .then(response => {
           console.log('updating refData')
           this.refData = {
-            refCount: response.data.refCount,
+            refCounts: response.data.refCounts,
             refs: response.data.refs,
             callCount: response.data.callCount,
             calls: response.data.calls,

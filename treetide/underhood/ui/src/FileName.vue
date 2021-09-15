@@ -1,6 +1,6 @@
 <template>
-  <div>
-    <LangIcon :for-file="filePath" /> {{filePath}}
+  <div @click="$emit('click', $event)">
+    <LangIcon v-if="enableIcon" :for-file="filePath" /> {{filePath}}
   </div>
 </template>
 
@@ -14,6 +14,10 @@ export default {
   },
   props: {
     filePath: String,
+    enableIcon: {
+      type: Boolean,
+      default: true,
+    },
   },
 }
 </script>
