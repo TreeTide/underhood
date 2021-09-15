@@ -277,6 +277,7 @@ export default {
         readOnly: true,
         cursorBlinkRate: -1,
       },
+      lastMirrorMouseEvent: null,
     }
   },
   methods: {
@@ -308,6 +309,9 @@ export default {
       cm.on('touchstart', this.onCmTouchStart);
       cm.on('keydown', this.onCmKeyDown);
       const thiz = this;
+      cm.getWrapperElement().addEventListener('mousemove', function(e) {
+        thiz.lastMirrorMouseEvent = e;
+      });
       cm.getWrapperElement().addEventListener('mousemove', _.debounce(
         function(e) {
           const cmPos = cm.coordsChar({
@@ -341,26 +345,67 @@ export default {
     },
     onCmMouseDown (cm, e) {
       console.log('mouse-down', e);
+      this.lastMirrorMouseEvent = e;
       if (e.ctrlKey) {
-        let lineCh = cm.coordsChar({
-          left: e.clientX,
-          top: e.clientY,
-        }, "window");
-        let w = cm.findWordAt(lineCh);
-        let r = cm.getRange(w.anchor, w.head);
-        console.log("ctrl-click on word", "[" + r + "]");
-        this._startSearchXref(r, e.shiftKey);
+        this._startSearchXrefInMode("QueryFromCursor", "Lax", e.shiftKey);
       }
     },
     onCmKeyDown (cm, e) {
-      const selText = this.codemirror.getSelection().trim();
-      console.log('key-down', e, "[" + selText + "]");
-      // TODO configurable key.
-      if (selText.length > 0 && e.code == "KeyB") {
-        this._startSearchXref(selText, e.shiftKey);
+      console.log('key-down', e);
+      // TODO configurable keys.
+      let invertCase = e.shiftKey;
+      let querySource = "";
+      let mode = "";
+      switch (e.code) {
+        case "KeyB":
+          querySource = "QueryFromSelection";
+          mode = "Boundary";
+          break;
+        case "KeyV":
+          querySource = "QueryFromSelection";
+          mode = "Lax";
+          break;
+        case "KeyX":
+          querySource = "QueryFromCursor";
+          mode = "Lax";
+          break;
+        case "KeyC":
+          querySource = "QueryFromCursor";
+          mode = "Boundary";
+          break;
+        default:
+          return;
+      }
+      this._startSearchXrefInMode(querySource, mode, invertCase);
+    },
+    _startSearchXrefInMode(querySource, mode, invertCaseBehavior) {
+      console.log('Xref search', querySource, mode, invertCaseBehavior);
+      let q = ""
+      if (querySource == 'QueryFromSelection') {
+        q = this.codemirror.getSelection().trim();
+        console.log("query from selection", "[" + q + "]");
+      } else if (querySource == 'QueryFromCursor' && this.lastMirrorMouseEvent != null) {
+        const cm = this.codemirror;
+        let lineCh = cm.coordsChar({
+          left: this.lastMirrorMouseEvent.clientX,
+          top: this.lastMirrorMouseEvent.clientY,
+        }, "window");
+        let w = cm.findWordAt(lineCh);
+        q = cm.getRange(w.anchor, w.head);
+        console.log("query from cursor", "[" + q + "]");
+      } else {
+        throw ('Unknown querySource: ' + querySource)
+      }
+
+      if (mode != "Lax" && mode != "Boundary") {
+        throw ('Unknown mode: ' + mode)
+      }
+
+      if (q.length > 0) {
+        this._startSearchXref(q, mode, invertCaseBehavior)
       }
     },
-    _startSearchXref(toSearch, invertCaseBehavior) {
+    _startSearchXref(toSearch, mode, invertCaseBehavior) {
       // Trigger a selection-based search.
       // We interpret 'toSearch' casing in a Zoekt-compatible way:
       //
@@ -380,6 +425,7 @@ export default {
         params: {
           selection: toSearch,
           casing: zoektCase,
+          mode: mode,
           ticket: this.renderedTicket,
         },
         // TODO cancelToken / canceller
