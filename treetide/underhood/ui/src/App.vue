@@ -349,7 +349,7 @@ export default {
         let w = cm.findWordAt(lineCh);
         let r = cm.getRange(w.anchor, w.head);
         console.log("ctrl-click on word", "[" + r + "]");
-        this._startSearchXref(r);
+        this._startSearchXref(r, e.shiftKey);
       }
     },
     onCmKeyDown (cm, e) {
@@ -357,11 +357,14 @@ export default {
       console.log('key-down', e, "[" + selText + "]");
       // TODO configurable key.
       if (selText.length > 0 && e.code == "KeyB") {
-        this._startSearchXref(selText);
+        this._startSearchXref(selText, e.shiftKey);
       }
     },
-    _startSearchXref(toSearch) {
+    _startSearchXref(toSearch, ignoreCase) {
       // Trigger a selection-based search.
+      if (ignoreCase) {
+        toSearch = toSearch.toLowerCase();
+      }
       // TODO set spinner on refs?
       axios.get('/api/search-xref', {
         params: {
