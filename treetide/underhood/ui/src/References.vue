@@ -52,14 +52,21 @@
         </div>
 
         <div :class="_refHeadingClasses">References ({{ refCount }})</div>
-        <div v-for="kv in _kvs(groupedRefs)">
-          <div :class="_refFileClasses">
-            <FileName :file-path="siteDisplayFile(kv)" />
+        <div v-for="group in refs">
+          <div v-for="fileSites in group.sFileSites">
+            <div :class="_refFileClasses">
+              <FileName :file-path="fileSites.sContainingFile.dfDisplayName" />
+            </div>
+            <template v-if="fileSites.sDupOfFile">
+              <span class="clickableRef" @click="onClick(fileSites, fileSites.sSnippets[0])"><i>&nbsp;Dup of {{fileSites.sDupOfFile.dfDisplayName}}</i></span>
+            </template>
+            <template v-else>
+              <div v-for="ref in fileSites.sSnippets">
+                <span class="clickableRef" @click="onClick(fileSites, ref)"><span :class="_refLineClasses">{{_refVisualLine2(ref)}}</span><span v-html="_formatRefSnippet2(ref)" /></span>
+              </div>
+            </template>
+            <div class="sectionSpacer"/>
           </div>
-          <div v-for="ref in kv.v">
-            <span class="clickableRef" @click="onClick(ref)"><span :class="_refLineClasses">{{_refVisualLine(ref)}}</span><span v-html="_formatRefSnippet(ref)" /></span>
-          </div>
-          <div class="sectionSpacer"/>
         </div>
 
       </div>
@@ -88,8 +95,8 @@ let state = {
 // Groups by ticket instead display file name, as in odd cases the name can
 // collide. For example root="",dir="foo/bar" collides with
 // root="foo",dir="bar".
-function siteContainerTicket(s) {
-  return s.sContainingFile.dfFileTicket;
+function xxxsiteContainerTicket(s) {
+  return xxxs.sContainingFile.dfFileTicket;
 }
 
 function _lineColString(p) {
@@ -129,18 +136,6 @@ export default {
   computed: {
     groupedCalls() {
       return _.groupBy(this.calls, c => siteContainerTicket(c.ccContextSite));
-    },
-    groupedRefs () {
-      return _.mapValues(
-        _.groupBy(this.refs, siteContainerTicket),
-        vs =>
-          // Note: drop subsequent refs from the same line. This is until we
-          // differentiate (and dedup) ref kinds more intelligently.
-          _.sortedUniqBy(
-            _.sortBy(vs, v => this._refVisualLine(v)),
-            v => _lineColString(v.sSnippet.snippetFullSpan.from)
-          )
-        );
     },
     groupedDefinitions () {
       return _.mapValues(_.groupBy(this.definitions, siteContainerTicket),
@@ -182,14 +177,14 @@ export default {
       };
     },
 
-    onClick(r) {
+    onClick(r, s) {
       // Note: this router handling could move to app, passing params
       // through the bus too.
       this.$router.push({
         name: 'file',
         params: {
           ticket: r.sContainingFile.dfFileTicket,
-          line: this._refVisualLine(r),
+          line: this._refVisualLine2(s),
         },
       });
 
@@ -224,15 +219,21 @@ export default {
       return res;
     },
     _refVisualLine(r) {
-      return r.sSnippet.snippetOccurrenceSpan.from.line + 1;
+      return this._refVisualLine2(r.sSnippet);
     },
     _formatRefSnippet(r) {
+      return this._formatRefSnippet2(r.sSnippet);
+    },
+    _refVisualLine2(r) {
+      return r.snippetOccurrenceSpan.from.line + 1;
+    },
+    _formatRefSnippet2(r) {
       // TODO only if single-line span.. or preprocess this on server-side.
-      const fullSpan = r.sSnippet.snippetFullSpan;
-      const snippetSpan = r.sSnippet.snippetOccurrenceSpan;
+      const fullSpan = r.snippetFullSpan;
+      const snippetSpan = r.snippetOccurrenceSpan;
       const subStart = snippetSpan.from.ch - fullSpan.from.ch;
       const subEnd = snippetSpan.to.ch - fullSpan.from.ch;
-      const t = r.sSnippet.snippetText;
+      const t = r.snippetText;
       const trimmed = _.trimStart(t);
       const pad = t.length - trimmed.length;
       const begin = t.substring(0, pad);
