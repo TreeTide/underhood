@@ -353,7 +353,9 @@ export default {
       if (this.previousVPaneSize == null) {
         this.previousVPaneSize = this.vPaneSize;
       }
-      this.vPaneSize = 0.01;
+      // Could set to 0.01, but then the #ticketDisplay can disappear
+      // mysteriously when searching. CSS wart?
+      this.vPaneSize = 15;
     },
     onCmMouseDown (cm, e) {
       console.log('mouse-down', e);
