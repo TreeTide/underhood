@@ -2,6 +2,7 @@
   <div :class="_refPanelClasses" ref="topElemRef">
     <div v-if="ticket || refData">
       <div v-if="!loading">
+        <!-- NOTE: everything except References is browen now -->
         <div v-if="_exists(declarations)">
           <div :class="_refHeadingClasses">Declarations</div>
           <!-- TODO un-copy-paste -->
@@ -56,24 +57,24 @@
           </span>
         </div>
         <div v-for="ght in groupedRefs">
-          <div> <!-- v-for="fileSites in group.sFileSites" -->
+          <div>
             <div :class="_refFileClasses">
               <FileName :file-path="ght.head.sContainingFile.dfDisplayName"
-                class="clickableRef" @click="onClick(ght.head, ght.head.sSnippets[0])" />
+                class="clickableRef" @click="onClick($event, ght.head, ght.head.sSnippets[0])" />
             </div>
-            <template v-if="ght.head.sDupOfFile">
-              <span class="clickableRef" @click="onClick(ght.head, ght.head.sSnippets[0])"><i>&nbsp;Dup of {{ght.head.sDupOfFile.dfDisplayName}}</i></span>
-            </template>
-            <template v-else>
-              <div v-for="ref in ght.head.sSnippets">
-                <div class="clickableRef" @click="onClick(ght.head, ref)"><span :class="_refLineClasses">{{_refVisualLine2(ref)}}</span><span v-html="_formatRefSnippet2(ref)" /></div>
+            <div v-for="refInfo in capIfNeeded(ght.head.sSnippets)">
+              <div v-for="ref in refInfo.values">
+                <div class="clickableRef" @click="onClick($event, ght.head, ref)"><span :class="_refLineClasses">{{_refVisualLine2(ref)}}</span><span v-html="_formatRefSnippet2(ref)" /></div>
               </div>
-            </template>
+              <div v-if="refInfo.notShown > 0" class="lineSkips">
+                ... {{ refInfo.notShown }} lines omitted ...
+              </div>
+            </div>
           </div>
           <div v-if="ght.tail.length > 0" class="sameMatches">
             <div v-for="fileSites in ght.tail"
                 class="clickableRef"
-                @click="onClick(fileSites, fileSites.sSnippets[0])">
+                @click="onClick($event, fileSites, fileSites.sSnippets[0])">
               <span v-if="fileSites.sDupOfFile">(DUP)</span>
               <span v-else>(SNIP)</span>
               <FileName style="display:inline"
@@ -186,6 +187,20 @@ export default {
     },
   },
   methods: {
+    capIfNeeded (snips) {
+      const lineCap = 500
+      if (this.refLineCount > lineCap) {
+        const cap = Math.max(2, Math.floor(lineCap / this.refFileCount));
+        return [{
+          values: _.take(snips, cap),
+          notShown: Math.max(0, snips.length - cap)
+        }];
+      }
+      return [{
+        values: snips,
+        notShown: 0,
+      }];
+    },
     siteDisplayFile(kv) {
       const s = kv.v[0];
       return s.sContainingFile.dfDisplayName;
@@ -201,7 +216,7 @@ export default {
       };
     },
 
-    onClick(r, s) {
+    onClick(e, r, s) {
       console.log("clicky", r, s);
       // Note: this router handling could move to app, passing params
       // through the bus too.
@@ -221,7 +236,15 @@ export default {
       //
       // TODO: [branch version] Need to pass the name/version of the repo
       // branch as well, so UI can properly identify among multiple repos
-      this.bus.onRefClick(r.sContainingFile.dfDisplayName.replace(":", "/"));
+      this.bus.onRefClick(r.sContainingFile.dfDisplayName.replace(":", "/"), e);
+
+      // NOTE: Can we keep the element in focus, after the ref panel collapses
+      // back to small size after a top-bar search? Having the vpane move
+      // smoothly is a problem, we don't know when to focus.
+      // In the mean time, an ugly hack:
+      setTimeout(() => {
+        e.target.scrollIntoView();
+      }, 250);
     },
     _exists(v) {
       return v != null && (v.length == undefined || v.length > 0);
@@ -376,6 +399,12 @@ export default {
 }
 .tinyIcon {
   height: 12px;
+}
+
+.lineSkips {
+  margin-top: 5px;
+  margin-left: 10px;
+  font-style: oblique;
 }
 
 .sameMatches {

@@ -1,7 +1,8 @@
 <template>
   <div :class="_appClasses">
     <!-- TODO(robinp): better automated sizing between header and rest -->
-    <Header id="header" :current-ticket="renderedTicket" :bus="mkThemeBus" />
+    <Header id="header" :current-ticket="renderedTicket" :bus="mkThemeBus"
+        @search-bar-text="onSearchBarText"/>
     <splitpanes horizontal class="default-theme top-split"
         @resized="onTopSplitResized"
         @resize="onTopSplitResize"
@@ -266,6 +267,7 @@ export default {
       refTicket: null,
       refData: null,
       renderedTicket: null,
+      searchBarText: "",
       cmOptions: {
         mode: 'text/x-go',
         undoDepth: 0,
@@ -280,6 +282,8 @@ export default {
       },
       lastMirrorMouseEvent: null,
       vPaneSize: 75,
+      // Saves vPaneSize when using top-bar search, to restore later.
+      previousVPaneSize: null,
     }
   },
   methods: {
@@ -343,6 +347,14 @@ export default {
     onCmViewportChange (cm, e) {
       console.log('viewport-change', e);
     },
+    onSearchBarText(q) {
+      this.searchBarText = q;
+      this._startSearchXrefInMode("QueryFromSearchBar", "Raw", false);
+      if (this.previousVPaneSize == null) {
+        this.previousVPaneSize = this.vPaneSize;
+      }
+      this.vPaneSize = 0.01;
+    },
     onCmMouseDown (cm, e) {
       console.log('mouse-down', e);
       this.lastMirrorMouseEvent = e;
@@ -381,23 +393,31 @@ export default {
     _startSearchXrefInMode(querySource, mode, invertCaseBehavior) {
       console.log('Xref search', querySource, mode, invertCaseBehavior);
       let q = ""
-      if (querySource == 'QueryFromSelection') {
+      switch (querySource) {
+      case 'QueryFromSelection':
         q = this.codemirror.getSelection().trim();
         console.log("query from selection", "[" + q + "]");
-      } else if (querySource == 'QueryFromCursor' && this.lastMirrorMouseEvent != null) {
-        const cm = this.codemirror;
-        let lineCh = cm.coordsChar({
-          left: this.lastMirrorMouseEvent.clientX,
-          top: this.lastMirrorMouseEvent.clientY,
-        }, "window");
-        let w = cm.findWordAt(lineCh);
-        q = cm.getRange(w.anchor, w.head);
-        console.log("query from cursor", "[" + q + "]");
-      } else {
+        break;
+      case 'QueryFromCursor':
+        if (this.lastMirrorMouseEvent != null) {
+          const cm = this.codemirror;
+          let lineCh = cm.coordsChar({
+            left: this.lastMirrorMouseEvent.clientX,
+            top: this.lastMirrorMouseEvent.clientY,
+          }, "window");
+          let w = cm.findWordAt(lineCh);
+          q = cm.getRange(w.anchor, w.head);
+          console.log("query from cursor", "[" + q + "]");
+        }
+        break;
+      case 'QueryFromSearchBar':
+        q = this.searchBarText;
+        break;
+      default:
         throw ('Unknown querySource: ' + querySource)
       }
 
-      if (mode != "Lax" && mode != "Boundary") {
+      if (mode != "Lax" && mode != "Boundary" && mode != "Raw") {
         throw ('Unknown mode: ' + mode)
       }
 
@@ -542,9 +562,18 @@ export default {
       this.cmOptions.theme = theme;
     },
     onRefClick (filePath) {
+      // Start restoring vpane, if needed.
+      if (this.previousVPaneSize != null) {
+        console.log('restoring vpane');
+        // Restore
+        this.vPaneSize = this.previousVPaneSize;
+        this.previousVPaneSize = null;
+        this.onCodeMirrorHeightPercentage(this.vPaneSize);
+      }
+
       // This filetree model handling should eventually go to a top-level
       // filetree component.
-      console.log('should open', filePath);
+      console.log('onRefClick', filePath);
       let parts = filePath.split("/");
       let i = 0;
       let go = (cur, k) => {
@@ -564,7 +593,7 @@ export default {
             //
             // Arguably zoekt-underhood could preprocess the repos into a tree,
             // but let's see.
-            console.log(c.name, i, parts[i])
+            // console.log(c.name, i, parts[i])
             if (c.name == parts[i]) {
               // Normal case
               console.log('found', c.name);
@@ -610,7 +639,9 @@ export default {
         this._giveBackFocus();
       }));
     },
+    // Note: triggered by router changes via __render as wel.
     _loadSource (ticket, mbLineToFocus) {
+      console.log('_loadSource');
       if (this.renderedTicket == ticket) {
         console.log('same-ticket');
         if (mbLineToFocus) {
