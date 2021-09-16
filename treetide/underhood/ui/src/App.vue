@@ -38,7 +38,9 @@
         <References
             :bus="mkRefBus"
             :ticket="refTicket"
+            :ext-loading="refsLoading"
             :ref-data="refData"
+            :scroll-on-click="refsForTopSearch"
             :highlight-mode="cmOptions.mode"
             :highlight-style="cmOptions.theme" />
         <div :class="'uh-background refs-filler'" />
@@ -266,6 +268,8 @@ export default {
       code: '// Please wait for filenav to load on the left and select file.',
       refTicket: null,
       refData: null,
+      refsLoading: false,
+      refsForTopSearch: false,
       renderedTicket: null,
       searchBarText: "",
       cmOptions: {
@@ -424,6 +428,7 @@ export default {
       }
 
       if (q.length > 0) {
+        this.refsForTopSearch = querySource == 'QueryFromSearchBar';
         this._startSearchXref(q, mode, invertCaseBehavior)
       }
     },
@@ -442,7 +447,9 @@ export default {
         let wasIgnoreCase = toSearch == lowered;
         zoektCase = wasIgnoreCase ? "yes" : "no";
       }
-      // TODO set spinner on refs?
+      this.refData = null;
+      this.refsLoading = true;  // TODO counterize
+
       axios.get('/api/search-xref', {
         params: {
           selection: toSearch,
@@ -468,8 +475,8 @@ export default {
             console.log(err);
           }
         }).then(() => {
-          // remove canceller
-          // remove spinner?
+          this.refsLoading = false;
+          // TODO remove canceller
         });
     },
     onCmTouchStart (e) {
@@ -667,6 +674,11 @@ export default {
             this.$nextTick(() => {
               // Deferred, since codemirror needs to render.
               this._jumpToLine(mbLineToFocus);
+            });
+          } else {
+            this.$nextTick(() => {
+              // TODO keep history state and reuse last viewed line for file
+              this._jumpToLine(1);
             });
           }
           // TODO copy initial prop to data elem to avoid warning about

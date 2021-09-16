@@ -1,93 +1,98 @@
 <template>
   <div :class="_refPanelClasses" ref="topElemRef">
-    <div v-if="ticket || refData">
-      <div v-if="!loading">
-        <!-- NOTE: everything except References is browen now -->
-        <div v-if="_exists(declarations)">
-          <div :class="_refHeadingClasses">Declarations</div>
-          <!-- TODO un-copy-paste -->
-          <div v-for="kv in _kvs(groupedDeclarations)">
-            <div :class="_refFileClasses">
-              <FileName :file-path="siteDisplayFile(kv)" />
-            </div>
-            <div v-for="ref in kv.v">
-              <span class="clickableRef" @click="onClick(ref)"><span :class="_refLineClasses">{{_refVisualLine(ref)}}</span> <span v-html="_formatRefSnippet(ref)" /></span>
-            </div>
-          </div>
-          <div class="sectionSpacer"/>
-        </div>
-
-        <div v-if="_exists(definitions)">
-          <div :class="_refHeadingClasses">Definition</div>
-          <div v-for="kv in _kvs(groupedDefinitions)">
-            <div :class="_refFileClasses">
-              <FileName :file-path="siteDisplayFile(kv)" />
-            </div>
-            <div v-for="ref in kv.v">
-              <span class="clickableRef" @click="onClick(ref)"><span :class="_refLineClasses">{{_refVisualLine(ref)}}</span> <span v-html="_formatRefSnippet(ref)" /></span>
-            </div>
-          </div>
-          <div class="sectionSpacer"/>
-        </div>
-
-        <div :class="_refHeadingClasses" v-if="callCount>0">Callers ({{ callCount }})</div>
-        <div v-for="kv in _kvs(groupedCalls)">
-          <div :class="_refFileClasses">
-            <FileName :file-path="callDisplayFile(kv)" />
-          </div>
-          <div v-for="cc in kv.v">
-            <div class="clickableRef callContext" @click="onClick(cc.ccContextSite)">
-              <span :class="_refLineClasses">{{_refVisualLine(cc.ccContextSite)}}</span>
-              <span v-html="_formatRefSnippet(cc.ccContextSite)" /></span>
-            </div>
-            <div v-for="snippet in cc.ccSites">
-              <template v-for="callSite in [synthSite(cc.ccContextSite, snippet)]">
-                <span class="clickableRef" @click="onClick(callSite)">
-                  <span :class="_refLineClasses">{{_refVisualLine(callSite)}}</span>
-                  <span v-html="_formatRefSnippet(callSite)" /></span>
-                </span>
-              </template>
-            </div>
-          </div>
-          <div class="sectionSpacer"/>
-        </div>
-
-        <div :class="_refHeadingClasses">References<span v-if="refLineCount>0">: {{ refLineCount }} lines,
-            {{ refFileCount }} files<span v-if="refDupFileCount > 0"> ({{ refDupFileCount }} content dups<span v-if="refDupMatchCount > refDupFileCount"> + {{ refDupMatchCount-refDupFileCount }} match dups</span>)</span>
-          </span>
-        </div>
-        <div v-for="ght in groupedRefs">
-          <div>
-            <div :class="_refFileClasses">
-              <FileName :file-path="ght.head.sContainingFile.dfDisplayName"
-                class="clickableRef" @click="onClick($event, ght.head, ght.head.sSnippets[0])" />
-            </div>
-            <div v-for="refInfo in capIfNeeded(ght.head.sSnippets)">
-              <div v-for="ref in refInfo.values">
-                <div class="clickableRef" @click="onClick($event, ght.head, ref)"><span :class="_refLineClasses">{{_refVisualLine2(ref)}}</span><span v-html="_formatRefSnippet2(ref)" /></div>
+    <div v-if="extLoading">
+      Loading refs...
+    </div>
+    <div v-else>
+      <div v-if="ticket || refData">
+        <div v-if="!loading">
+          <!-- NOTE: everything except References is browen now -->
+          <div v-if="_exists(declarations)">
+            <div :class="_refHeadingClasses">Declarations</div>
+            <!-- TODO un-copy-paste -->
+            <div v-for="kv in _kvs(groupedDeclarations)">
+              <div :class="_refFileClasses">
+                <FileName :file-path="siteDisplayFile(kv)" />
               </div>
-              <div v-if="refInfo.notShown > 0" class="lineSkips">
-                ... {{ refInfo.notShown }} lines omitted ...
+              <div v-for="ref in kv.v">
+                <span class="clickableRef" @click="onClick(ref)"><span :class="_refLineClasses">{{_refVisualLine(ref)}}</span> <span v-html="_formatRefSnippet(ref)" /></span>
               </div>
             </div>
+            <div class="sectionSpacer"/>
           </div>
-          <div v-if="ght.tail.length > 0" class="sameMatches">
-            <div v-for="fileSites in ght.tail"
-                class="clickableRef"
-                @click="onClick($event, fileSites, fileSites.sSnippets[0])">
-              <span v-if="fileSites.sDupOfFile">(DUP)</span>
-              <span v-else>(SNIP)</span>
-              <FileName style="display:inline"
-                :file-path="fileSites.sContainingFile.dfDisplayName"
-                :enable-icon="false" />
-            </div>
-          </div>
-          <div class="sectionSpacer"/>
-        </div>
 
-      </div>
-      <div v-else>
-        Loading refs..
+          <div v-if="_exists(definitions)">
+            <div :class="_refHeadingClasses">Definition</div>
+            <div v-for="kv in _kvs(groupedDefinitions)">
+              <div :class="_refFileClasses">
+                <FileName :file-path="siteDisplayFile(kv)" />
+              </div>
+              <div v-for="ref in kv.v">
+                <span class="clickableRef" @click="onClick(ref)"><span :class="_refLineClasses">{{_refVisualLine(ref)}}</span> <span v-html="_formatRefSnippet(ref)" /></span>
+              </div>
+            </div>
+            <div class="sectionSpacer"/>
+          </div>
+
+          <div :class="_refHeadingClasses" v-if="callCount>0">Callers ({{ callCount }})</div>
+          <div v-for="kv in _kvs(groupedCalls)">
+            <div :class="_refFileClasses">
+              <FileName :file-path="callDisplayFile(kv)" />
+            </div>
+            <div v-for="cc in kv.v">
+              <div class="clickableRef callContext" @click="onClick(cc.ccContextSite)">
+                <span :class="_refLineClasses">{{_refVisualLine(cc.ccContextSite)}}</span>
+                <span v-html="_formatRefSnippet(cc.ccContextSite)" /></span>
+              </div>
+              <div v-for="snippet in cc.ccSites">
+                <template v-for="callSite in [synthSite(cc.ccContextSite, snippet)]">
+                  <span class="clickableRef" @click="onClick(callSite)">
+                    <span :class="_refLineClasses">{{_refVisualLine(callSite)}}</span>
+                    <span v-html="_formatRefSnippet(callSite)" /></span>
+                  </span>
+                </template>
+              </div>
+            </div>
+            <div class="sectionSpacer"/>
+          </div>
+
+          <div :class="_refHeadingClasses">References<span v-if="refLineCount>0">: {{ refLineCount }} lines,
+              {{ refFileCount }} files<span v-if="refDupFileCount > 0"> ({{ refDupFileCount }} content dups<span v-if="refDupMatchCount > refDupFileCount"> + {{ refDupMatchCount-refDupFileCount }} match dups</span>)</span>
+            </span>
+          </div>
+          <div v-for="ght in groupedRefs">
+            <div>
+              <div :class="_refFileClasses">
+                <FileName :file-path="ght.head.sContainingFile.dfDisplayName"
+                  class="clickableRef" @click="onClick($event, ght.head, ght.head.sSnippets[0])" />
+              </div>
+              <div v-for="refInfo in capIfNeeded(ght.head.sSnippets)">
+                <div v-for="ref in refInfo.values">
+                  <div class="clickableRef" @click="onClick($event, ght.head, ref)"><span :class="_refLineClasses">{{_refVisualLine2(ref)}}</span><span v-html="_formatRefSnippet2(ref)" /></div>
+                </div>
+                <div v-if="refInfo.notShown > 0" class="lineSkips">
+                  ... {{ refInfo.notShown }} lines omitted ...
+                </div>
+              </div>
+            </div>
+            <div v-if="ght.tail.length > 0" class="sameMatches">
+              <div v-for="fileSites in ght.tail"
+                  class="clickableRef"
+                  @click="onClick($event, fileSites, fileSites.sSnippets[0])">
+                <span v-if="fileSites.sDupOfFile">(DUP)</span>
+                <span v-else>(SNIP)</span>
+                <FileName style="display:inline"
+                  :file-path="fileSites.sContainingFile.dfDisplayName"
+                  :enable-icon="false" />
+              </div>
+            </div>
+            <div class="sectionSpacer"/>
+          </div>
+
+        </div>
+        <div v-else>
+          Fetching refs..
+        </div>
       </div>
     </div>
   </div>
@@ -130,6 +135,8 @@ export default {
     refData: Object,
     highlightMode: String,
     highlightStyle: String,
+    extLoading: Boolean,
+    scrollOnClick: Boolean,
   },
   components: {
     FileName
@@ -242,9 +249,11 @@ export default {
       // back to small size after a top-bar search? Having the vpane move
       // smoothly is a problem, we don't know when to focus.
       // In the mean time, an ugly hack:
-      setTimeout(() => {
-        e.target.scrollIntoView();
-      }, 250);
+      if (this.scrollOnClick) {
+        setTimeout(() => {
+          e.target.scrollIntoView();
+        }, 250);
+      }
     },
     _exists(v) {
       return v != null && (v.length == undefined || v.length > 0);
