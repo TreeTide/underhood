@@ -22,8 +22,15 @@
 <script>
 
 let state = {
-  hilitTree: null,
+  hilitModel: null,
+  hilitElement: null,
 };
+
+export function scrollToLastHilit() {
+  if (state.hilitElement != null) {
+    state.hilitElement.scrollIntoView({block: "center"});
+  }
+}
 
 export default {
   name: "file-tree",
@@ -57,13 +64,15 @@ export default {
     // Watch the computed item to properly get subprop changes, without
     // installing a too deep watcher.
     'model.highlight': function(v) {
+      console.log('hilight-change', v, this);
       if (!v) return;
       // Unhighlight any previous.
-      if (state.hilitTree != null) {
-        state.hilitTree.highlight = false;
+      if (state.hilitModel != null) {
+        state.hilitModel.highlight = false;
+        state.hilitElement = null;
       }
-      state.hilitTree = this.model;
-      this.$refs.nameItem.scrollIntoView({block: "center"});
+      state.hilitModel = this.model;
+      state.hilitElement = this.$refs.nameItem;
     },
   },
   methods: {
@@ -92,6 +101,7 @@ export default {
         };
         openWhileSingle(this.model);
       } else {
+        this.$set(this.model, 'highlight', true);
         this.bus.onClick(this.model.id)
       }
     },

@@ -19,8 +19,10 @@
                 />
             </div>
           </pane>
-          <pane :key="12" size="80" class="viewer-pane">
-            <div id="ticketDisplay" class="uh-background uh-color">{{renderedTicket}}</div>
+          <pane :key="12" size="80" class="viewer-pane" ref="viewerPane">
+            <div ref="cmPre">
+              <div id="ticketDisplay" class="uh-background uh-color">{{renderedTicket}}</div>
+            </div>
             <codemirror class="viewer"
               :value="code"
               :options="cmOptions"
@@ -40,7 +42,7 @@
             :ticket="refTicket"
             :ext-loading="refsLoading"
             :ref-data="refData"
-            :scroll-on-click="refsForTopSearch"
+            :scroll-on-click="collapseRefsOnNextRefClick"
             :highlight-mode="cmOptions.mode"
             :highlight-style="cmOptions.theme" />
         <div :class="'uh-background refs-filler'" />
@@ -96,6 +98,7 @@ import 'splitpanes/dist/splitpanes.css'
 
 import RH from './rest_helpers.js'
 import FileTree from './FileTree.vue'
+import { scrollToLastHilit } from './FileTree.vue'
 import References from './References.vue'
 import Header from './Header.vue'
 
@@ -269,7 +272,7 @@ export default {
       refTicket: null,
       refData: null,
       refsLoading: false,
-      refsForTopSearch: false,
+      collapseRefsOnNextRefClick: false,
       renderedTicket: null,
       searchBarText: "",
       cmOptions: {
@@ -290,29 +293,61 @@ export default {
       previousVPaneSize: null,
     }
   },
+  mounted() {
+    // Note: using this observer to adjust CodeMirror size, instead of
+    // splitpane's native resize event, since latter only triggers when moving
+    // the splitter manually, but not during initial render stabilization.
+    new ResizeObserver(() => {
+      // console.log("observer detected viewerPane resize");
+      this.setupCodeMirrorHeight();
+    }).observe(this.$refs.viewerPane.$el);
+  },
   methods: {
+    magicDebug(mx, f) {
+      let maxtick = [mx];
+      let g = () => {
+        f();
+        if (--maxtick[0] > 0) {
+          Vue.nextTick(() => {
+            g();
+          });
+        }
+      }
+      g();
+      setTimeout(() => {
+        console.log('AFTER N MILLIS');
+        f();
+      }, 200);
+    },
+    // Leaving around in case. Can be used to determine where in ticks or time
+    // some property changes.
+    hDebug(s) {
+      this.magicDebug(10, () =>
+            console.log("Tick " + s, this.$refs.viewerPane.$el.clientHeight))
+    },
+    debugUI(s) {
+      let calcPaneH = rh * this.vPaneSize / 100.0;
+      let sci = this.codemirror.getScrollInfo();
+      console.log(s,
+        "viewerPaneH", this.$refs.viewerPane.$el.clientHeight,
+        "vPaneSize", this.vPaneSize,
+        "calcPaneH", calcPaneH,
+        "cmVisibleH", sci.clientHeight);
+    },
     onTopSplitResized(ev) {
-      const cmPercentage = ev[0].size;
-      this.onCodeMirrorHeightPercentage(cmPercentage);
+      this._giveBackFocus();
     },
     onTopSplitResize(ev) {
-      const cmPercentage = ev[0].size;
-      this.onCodeMirrorHeightPercentage(cmPercentage);
+      // See usage of ResizeObserver in mounted.
+      this.vPaneSize = ev[0].size;
     },
-    onCodeMirrorHeightPercentage(cmPercentage) {
-      // https://stackoverflow.com/questions/1248081/how-to-get-the-browser-viewport-dimensions
-      const vh = Math.max(document.documentElement.clientHeight, window.innerHeight || 0);
-      const cmHeight = vh * cmPercentage / 100;
-      console.log("resize", cmPercentage, "vh", vh, "cmHeight", cmHeight);
+    setupCodeMirrorHeight() {
+      const viewerH = this.$refs.viewerPane.$el.clientHeight;
+      const preH = this.$refs.cmPre.clientHeight;
+      const cmHeight = 1 + Math.floor(viewerH - preH);
       this.codemirror.setSize(null, cmHeight + "px");
     },
     onCmReady (cm) {
-      // Default codemirror.css specifies 300px.
-      //
-      // NOTE: it is important to keep this value fixed (that is, not auto).
-      // See https://github.com/TreeTide/underhood/issues/21.
-      this.onCodeMirrorHeightPercentage(this.vPaneSize);
-
       cm.on('mousedown', this.onCmMouseDown);
       cm.on('touchstart', this.onCmTouchStart);
       cm.on('keydown', this.onCmKeyDown);
@@ -346,10 +381,10 @@ export default {
         }));
     },
     onCmScroll (cm) {
-      looseLog(cm);
+      // looseLog(cm);
     },
     onCmViewportChange (cm, e) {
-      console.log('viewport-change', e);
+      // console.log('viewport-change', e);
     },
     onSearchBarText(q) {
       this.searchBarText = q;
@@ -362,14 +397,14 @@ export default {
       this.vPaneSize = 15;
     },
     onCmMouseDown (cm, e) {
-      console.log('mouse-down', e);
+      // console.log('mouse-down', e);
       this.lastMirrorMouseEvent = e;
       if (e.ctrlKey) {
         this._startSearchXrefInMode("QueryFromCursor", "Lax", e.shiftKey);
       }
     },
     onCmKeyDown (cm, e) {
-      console.log('key-down', e);
+      // console.log('key-down', e);
       // TODO configurable keys.
       let invertCase = e.shiftKey;
       let querySource = "";
@@ -428,7 +463,7 @@ export default {
       }
 
       if (q.length > 0) {
-        this.refsForTopSearch = querySource == 'QueryFromSearchBar';
+        this.collapseRefsOnNextRefClick = querySource == 'QueryFromSearchBar';
         this._startSearchXref(q, mode, invertCaseBehavior)
       }
     },
@@ -577,12 +612,16 @@ export default {
         // Restore
         this.vPaneSize = this.previousVPaneSize;
         this.previousVPaneSize = null;
-        this.onCodeMirrorHeightPercentage(this.vPaneSize);
+        this.setupCodeMirrorHeight();
       }
+      // Clear, so after first click no jumping around happens in refs.
+      this.collapseRefsOnNextRefClick = false;
 
-      // This filetree model handling should eventually go to a top-level
-      // filetree component.
-      console.log('onRefClick', filePath);
+      this._focusTree(filePath, true);
+    },
+    // This filetree model handling should eventually go.. somewhere.
+    _focusTree(filePath, shouldScrollTo) {
+      console.log('focusing', filePath);
       let parts = filePath.split("/");
       let i = 0;
       let go = (cur, k) => {
@@ -645,6 +684,10 @@ export default {
       go(this.nodes, (c) => Vue.nextTick(() => {
         console.log('hiliting', c.name);
         c.highlight = true;
+        if (shouldScrollTo) {
+          // Did the change propagate already? Nexttick to be safe.
+          Vue.nextTick(() => scrollToLastHilit());
+        }
         this._giveBackFocus();
       }));
     },
@@ -661,9 +704,12 @@ export default {
       }
       console.log('load-source-start');
       axios.get('/api/source', {
+        // See https://github.com/axios/axios/issues/907, argh.
+        transformResponse: undefined,
         params: { ticket }
       })
         .then(response => {
+          this.setupCodeMirrorHeight();
           console.log('loaded-source');
           let start = Date.now();
           resetXRefState(this.codemirror);

@@ -7,18 +7,34 @@
       <div v-if="ticket || refData">
         <div v-if="!loading">
           <!-- NOTE: everything except References is browen now -->
-          <div v-if="_exists(declarations)">
-            <div :class="_refHeadingClasses">Declarations</div>
-            <!-- TODO un-copy-paste -->
-            <div v-for="kv in _kvs(groupedDeclarations)">
+          <div :class="_refHeadingClasses" v-if="_exists(declarations)">Declarations</div>
+          <div v-for="ght in groupedDeclarations">
+            <div>
               <div :class="_refFileClasses">
-                <FileName :file-path="siteDisplayFile(kv)" />
+                <FileName :file-path="ght.head.sContainingFile.dfDisplayName"
+                  class="clickableRef" @click="onClick($event, ght.head, ght.head.sSnippets[0])" />
               </div>
-              <div v-for="ref in kv.v">
-                <span class="clickableRef" @click="onClick(ref)"><span :class="_refLineClasses">{{_refVisualLine(ref)}}</span> <span v-html="_formatRefSnippet(ref)" /></span>
+              <div v-for="refInfo in capIfNeeded(ght.head.sSnippets)">
+                <div v-for="ref in refInfo.values">
+                  <div class="clickableRef" @click="onClick($event, ght.head, ref)"><span :class="_refLineClasses">{{_refVisualLine2(ref)}}</span><span v-html="_formatRefSnippet2(ref)" /></div>
+                </div>
+                <div v-if="refInfo.notShown > 0" class="lineSkips">
+                  ... {{ refInfo.notShown }} lines omitted ...
+                </div>
               </div>
             </div>
-            <div class="sectionSpacer"/>
+            <div v-if="ght.tail.length > 0" class="sameMatches">
+              <div v-for="fileSites in ght.tail"
+                  class="clickableRef"
+                  @click="onClick($event, fileSites, fileSites.sSnippets[0])">
+                <span v-if="fileSites.sDupOfFile">(DUP)</span>
+                <span v-else>(SNIP)</span>
+                <FileName style="display:inline"
+                  :file-path="fileSites.sContainingFile.dfDisplayName"
+                  :enable-icon="false" />
+              </div>
+            </div>
+            <div class="sectionSpacerBig"/>
           </div>
 
           <div v-if="_exists(definitions)">
@@ -168,8 +184,10 @@ export default {
         vs => _.sortBy(vs, v => this._refVisualLine(v)));
     },
     groupedDeclarations () {
-      return _.mapValues(_.groupBy(this.declarations, siteContainerTicket),
-        vs => _.sortBy(vs, v => this._refVisualLine(v)));
+      return _.mapValues(this.declarations, g => ({
+        head: g.sFileSites[0],
+        tail: _.tail(g.sFileSites),
+      }));
     },
     groupedRefs () {
       return _.mapValues(this.refs, g => ({
@@ -187,7 +205,7 @@ export default {
       return ['refLine', 'uh-linenumber'];
     },
     _refHeadingClasses() {
-      return ['refHeading', 'uh-selected-background'];
+      return ['refHeading', 'uh-activeline-background'];
     },
     _refFileClasses() {
       return ['refFile', 'uh-selected-background'];
@@ -379,6 +397,10 @@ export default {
 .sectionSpacer {
   margin-bottom: 5px;
 }
+.sectionSpacerBig {
+  margin-bottom: 5px;
+}
+
 .refPanelHighlight {
   font-weight: bold;
   text-decoration: underline dotted;
@@ -401,6 +423,7 @@ export default {
 }
 .refFile {
   margin-top: 2px;
+  margin-bottom: 1px;
 }
 .callContext {
   margin-top: 2px;

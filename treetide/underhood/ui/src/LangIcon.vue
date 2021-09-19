@@ -36,6 +36,7 @@ export default {
         js: "javascript",
         go: "go",
         py: "python",
+        s: "codeigniter",  // TODO, lacking assembly..
       };
       const parts = this.forFile.split(".");
       if (parts.length == 0) {
