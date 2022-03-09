@@ -9,8 +9,9 @@
 </template>
 
 <script>
+// Note: not using devicon-colors, since it doesn't play together nicely with
+// themes.
 import 'devicon/devicon.css';
-import 'devicon/devicon-colors.css';
 
 export default {
   props: {
@@ -35,6 +36,7 @@ export default {
         js: "javascript",
         go: "go",
         py: "python",
+        s: "codeigniter",  // TODO, lacking assembly..
       };
       const parts = this.forFile.split(".");
       if (parts.length == 0) {
@@ -48,7 +50,7 @@ export default {
     },
 
     deviconClass() {
-      return "devicon-" + this.iconName + "-plain colored tinyIcon";
+      return "devicon-" + this.iconName + "-plain tinyIcon";
     },
   },
   methods: {

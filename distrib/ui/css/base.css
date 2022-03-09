@@ -1,0 +1,13 @@
+/* These are lower prio than the ones with the specific uh-s-<theme> variants. */
+.uh-background-inverted {
+  background: black !important;
+}
+.uh-color-inverted {
+  color: white !important;
+}
+
+/* TODO move to specific css-es */
+.splitpanes--vertical > .splitpanes__splitter:before { background: #888 !important; }
+.splitpanes--vertical > .splitpanes__splitter:after { background: #888 !important; }
+.splitpanes--vertical > .splitpanes__splitter:hover:before { background: #CCC !important; }
+.splitpanes--vertical > .splitpanes__splitter:hover:after { background: #CCC !important; }

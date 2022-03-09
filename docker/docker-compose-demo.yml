@@ -1,0 +1,31 @@
+version: "3.3"
+
+services:
+  bake-demo-index:
+    image: treetide/underhood-bake-demo-index:local
+    build:
+      context: ..
+      dockerfile: docker/demo-index/Dockerfile
+    volumes:
+      - "demoindex:/out"
+
+  zoekt-underhood:
+    image: ghcr.io/treetide/zoekt-underhood:main
+    restart: always
+    expose:
+      - "6080"
+    volumes:
+      - "demoindex:/index:ro"
+    command: [ "-index", "/index" ]
+
+  nginx:
+    image: treetide/underhood-nginx-dev:local
+    build:
+      context: ..
+      dockerfile: docker/underhood-nginx/Dockerfile
+    restart: always
+    ports:
+      - "8080:80"
+
+volumes:
+  demoindex: {}

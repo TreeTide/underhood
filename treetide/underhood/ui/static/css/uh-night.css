@@ -1,0 +1,12 @@
+.uh-s-night .uh-background { background: #0a001f; }
+.uh-s-night .uh-color {  color: #f8f8f8; }
+.uh-s-night .uh-color-inverted { color: #0a001f !important ; }
+.uh-s-night .uh-background-inverted { background: #f8f8f8 !important ; }
+.uh-s-night .uh-selected-background { background: #447; }
+.uh-s-night .splitpanes--vertical > .splitpanes__splitter { background: #447 !important }
+.uh-s-night .splitpanes--horizontal > .splitpanes__splitter { background: #447 !important }
+.uh-s-night .uh-selection-background { background: rgba(68, 68, 119, .99); }
+.uh-s-night .splitpanes--vertical > .splitpanes__splitter { border-left: 2px solid #0a001f !important }
+.uh-s-night .splitpanes--horizontal > .splitpanes__splitter { border-top: 2px solid #0a001f !important }
+.uh-s-night .uh-linenumber {  color: #f8f8f8; }
+.uh-s-night .uh-activeline-background { background: #1C005A; }

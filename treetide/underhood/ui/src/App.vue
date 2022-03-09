@@ -1,22 +1,28 @@
 <template>
-  <div class="app">
+  <div :class="_appClasses">
+    <!-- TODO(robinp): better automated sizing between header and rest -->
+    <Header id="header" :current-ticket="renderedTicket" :bus="mkThemeBus"
+        @search-bar-text="onSearchBarText"/>
     <splitpanes horizontal class="default-theme top-split"
         @resized="onTopSplitResized"
         @resize="onTopSplitResize"
         >
-      <pane :key="1" size="75">
+      <pane :key="1" :size="vPaneSize">
         <splitpanes class="default-theme">
           <pane :key="11" size="20" class="filetree-pane">
-            <template v-if="nodes">
+            <div v-if="nodes" class="uh-background uh-color fullHeight">
               <file-tree
                 v-for="top in nodes.children"
                 :key="top.id"
                 :model="top"
                 :bus="mkNavBus"
                 />
-            </template>
+            </div>
           </pane>
-          <pane :key="12" size="80" class="viewer-pane">
+          <pane :key="12" size="80" class="viewer-pane" ref="viewerPane">
+            <div ref="cmPre">
+              <div id="ticketDisplay" class="uh-background uh-color">{{renderedTicket}}</div>
+            </div>
             <codemirror class="viewer"
               :value="code"
               :options="cmOptions"
@@ -30,11 +36,16 @@
           </pane>
         </splitpanes>
       </pane>
-      <pane :key="2" size="25" class="refs-pane">
+      <pane :key="2" :size="100 - vPaneSize" class="refs-pane">
         <References
+            :bus="mkRefBus"
             :ticket="refTicket"
-            highlight-mode="go"
-            highlight-style="solarized" />
+            :ext-loading="refsLoading"
+            :ref-data="refData"
+            :scroll-on-click="collapseRefsOnNextRefClick"
+            :highlight-mode="cmOptions.mode"
+            :highlight-style="cmOptions.theme" />
+        <div :class="'uh-background refs-filler'" />
       </pane>
     </splitpanes>
   </div>
@@ -42,15 +53,34 @@
 
 <script>
 import axios from 'axios';
+import Vue from 'vue';
 //
 import CodeMirror from 'codemirror';
 import 'codemirror/lib/codemirror.css';
+// Language syntax modules
 import 'codemirror/mode/clike/clike.js';
+import 'codemirror/mode/python/python.js';
 import 'codemirror/mode/go/go.js';
-import 'codemirror/theme/monokai.css';
-import 'codemirror/theme/solarized.css';
+import 'codemirror/mode/haskell/haskell.js';
+// Themes
+import 'codemirror/theme/darcula.css';
 import 'codemirror/theme/idea.css';
-//
+import 'codemirror/theme/monokai.css';
+import 'codemirror/theme/night.css';
+import 'codemirror/theme/solarized.css';
+import 'codemirror/theme/the-matrix.css';
+import 'codemirror/theme/zenburn.css';
+// Our corresponding themes
+import '../static/css/base.css';
+import '../static/css/uh-darcula.css';
+import '../static/css/uh-idea.css';
+import '../static/css/uh-monokai.css';
+import '../static/css/uh-night.css';
+import '../static/css/uh-solarized-dark.css';
+import '../static/css/uh-solarized-light.css';
+import '../static/css/uh-the-matrix.css';
+import '../static/css/uh-zenburn.css';
+// Needed by.. search?
 import 'codemirror/addon/dialog/dialog.css';
 import 'codemirror/addon/dialog/dialog.js';
 //
@@ -68,7 +98,9 @@ import 'splitpanes/dist/splitpanes.css'
 
 import RH from './rest_helpers.js'
 import FileTree from './FileTree.vue'
+import { scrollToLastHilit } from './FileTree.vue'
 import References from './References.vue'
+import Header from './Header.vue'
 
 // Warning: this is a shared instance? Singleton.
 
@@ -165,7 +197,7 @@ function highlightXRef(cm, ticket) {
       const cmStart = ds[i].dStart;
       const cmEnd = ds[i].dEnd;
       const marker = cm.markText(cmStart, cmEnd, {
-        className: 'xrefHighlight',
+        className: 'uh-color-inverted uh-background-inverted',
       });
       xrefState.highlightMarkers.push(marker);
       hls.push({
@@ -191,6 +223,17 @@ function chooseDecorStrategy(ds) {
   let mn = Infinity;
   let res = null;
   for (let i in ds) {
+    if (ds[i].dTarget.includes('_test')) {
+      // This is a HACK - for Kythe repo specially.
+      // Try on 'kythe/go/platform/delimited/dedup/dedup.go'
+      //
+      // TODO(robin): go code (and maybe others) often puts multiple refs at the same
+      // span (when a package spans multiple files, a ref into each path is emitted,
+      // short of better options). So we should fetch (&merge?) all results from these.
+      //
+      // Q: how do we display these? Tabs? Tables?
+      continue;
+    }
     let span = ds[i].dSpan;
     // HACK note: we should check the edge type, and choose based on that.
     // Or display a multi-edge menu.
@@ -225,14 +268,18 @@ export default {
   data () {
     return {
       nodes: null,
-      code: '// Foobar\n// Baz\nint main() {}',
+      code: '// Please wait for filenav to load on the left and select file.',
       refTicket: null,
+      refData: null,
+      refsLoading: false,
+      collapseRefsOnNextRefClick: false,
       renderedTicket: null,
+      searchBarText: "",
       cmOptions: {
-        mode: 'go',
+        mode: 'text/x-go',
         undoDepth: 0,
         lineNumbers: true,
-        theme: 'solarized',
+        theme: 'zenburn',
         // TODO: with Infinitiy, full-page-search works, but rendering and
         //   adding xrefs to big docs gets slow. We should add our own search,
         //   then can ditch Infitity, so we get speedup.
@@ -240,36 +287,74 @@ export default {
         readOnly: true,
         cursorBlinkRate: -1,
       },
+      lastMirrorMouseEvent: null,
+      vPaneSize: 75,
+      // Saves vPaneSize when using top-bar search, to restore later.
+      previousVPaneSize: null,
     }
   },
+  mounted() {
+    // Note: using this observer to adjust CodeMirror size, instead of
+    // splitpane's native resize event, since latter only triggers when moving
+    // the splitter manually, but not during initial render stabilization.
+    new ResizeObserver(() => {
+      // console.log("observer detected viewerPane resize");
+      this.setupCodeMirrorHeight();
+    }).observe(this.$refs.viewerPane.$el);
+  },
   methods: {
+    magicDebug(mx, f) {
+      let maxtick = [mx];
+      let g = () => {
+        f();
+        if (--maxtick[0] > 0) {
+          Vue.nextTick(() => {
+            g();
+          });
+        }
+      }
+      g();
+      setTimeout(() => {
+        console.log('AFTER N MILLIS');
+        f();
+      }, 200);
+    },
+    // Leaving around in case. Can be used to determine where in ticks or time
+    // some property changes.
+    hDebug(s) {
+      this.magicDebug(10, () =>
+            console.log("Tick " + s, this.$refs.viewerPane.$el.clientHeight))
+    },
+    debugUI(s) {
+      let calcPaneH = rh * this.vPaneSize / 100.0;
+      let sci = this.codemirror.getScrollInfo();
+      console.log(s,
+        "viewerPaneH", this.$refs.viewerPane.$el.clientHeight,
+        "vPaneSize", this.vPaneSize,
+        "calcPaneH", calcPaneH,
+        "cmVisibleH", sci.clientHeight);
+    },
     onTopSplitResized(ev) {
-      const cmPercentage = ev[0].size;
-      this.onCodeMirrorHeightPercentage(cmPercentage);
+      this._giveBackFocus();
     },
     onTopSplitResize(ev) {
-      const cmPercentage = ev[0].size;
-      this.onCodeMirrorHeightPercentage(cmPercentage);
+      // See usage of ResizeObserver in mounted.
+      this.vPaneSize = ev[0].size;
     },
-    onCodeMirrorHeightPercentage(cmPercentage) {
-      // https://stackoverflow.com/questions/1248081/how-to-get-the-browser-viewport-dimensions
-      const vh = Math.max(document.documentElement.clientHeight, window.innerHeight || 0);
-      const cmHeight = vh * cmPercentage / 100;
-      console.log("resize", cmPercentage, "vh", vh, "cmHeight", cmHeight);
+    setupCodeMirrorHeight() {
+      const viewerH = this.$refs.viewerPane.$el.clientHeight;
+      const preH = this.$refs.cmPre.clientHeight;
+      const cmHeight = 1 + Math.floor(viewerH - preH);
       this.codemirror.setSize(null, cmHeight + "px");
     },
     onCmReady (cm) {
-      // Default codemirror.css specifies 300px.
-      //
-      // NOTE: it is important to keep this value fixed (that is, not auto).
-      // See https://github.com/TreeTide/underhood/issues/21.
-      //
-      // TODO(robinp): take initial value from data maybe
-      this.onCodeMirrorHeightPercentage(75);
-
       cm.on('mousedown', this.onCmMouseDown);
       cm.on('touchstart', this.onCmTouchStart);
+      cm.on('keydown', this.onCmKeyDown);
       const thiz = this;
+      cm.getWrapperElement().addEventListener('mousemove', function(e) {
+        thiz.lastMirrorMouseEvent = e;
+      });
       cm.getWrapperElement().addEventListener('mousemove', _.debounce(
         function(e) {
           const cmPos = cm.coordsChar({
@@ -296,13 +381,138 @@ export default {
         }));
     },
     onCmScroll (cm) {
-      looseLog(cm);
+      // looseLog(cm);
     },
-    onCmViewportChange (e) {
-      console.log('viewport-change', e);
+    onCmViewportChange (cm, e) {
+      // console.log('viewport-change', e);
     },
-    onCmMouseDown (e) {
-      console.log('mouse-down', e);
+    onSearchBarText(q) {
+      this.searchBarText = q;
+      this._startSearchXrefInMode("QueryFromSearchBar", "Raw", false);
+      if (this.previousVPaneSize == null) {
+        this.previousVPaneSize = this.vPaneSize;
+      }
+      // Could set to 0.01, but then the #ticketDisplay can disappear
+      // mysteriously when searching. CSS wart?
+      this.vPaneSize = 15;
+    },
+    onCmMouseDown (cm, e) {
+      // console.log('mouse-down', e);
+      this.lastMirrorMouseEvent = e;
+      if (e.ctrlKey) {
+        this._startSearchXrefInMode("QueryFromCursor", "Lax", e.shiftKey);
+      }
+    },
+    onCmKeyDown (cm, e) {
+      // console.log('key-down', e);
+      // TODO configurable keys.
+      let invertCase = e.shiftKey;
+      let querySource = "";
+      let mode = "";
+      switch (e.code) {
+        case "KeyB":
+          querySource = "QueryFromSelection";
+          mode = "Boundary";
+          break;
+        case "KeyV":
+          querySource = "QueryFromSelection";
+          mode = "Lax";
+          break;
+        case "KeyX":
+          querySource = "QueryFromCursor";
+          mode = "Lax";
+          break;
+        case "KeyC":
+          querySource = "QueryFromCursor";
+          mode = "Boundary";
+          break;
+        default:
+          return;
+      }
+      this._startSearchXrefInMode(querySource, mode, invertCase);
+    },
+    _startSearchXrefInMode(querySource, mode, invertCaseBehavior) {
+      console.log('Xref search', querySource, mode, invertCaseBehavior);
+      let q = ""
+      switch (querySource) {
+      case 'QueryFromSelection':
+        q = this.codemirror.getSelection().trim();
+        console.log("query from selection", "[" + q + "]");
+        break;
+      case 'QueryFromCursor':
+        if (this.lastMirrorMouseEvent != null) {
+          const cm = this.codemirror;
+          let lineCh = cm.coordsChar({
+            left: this.lastMirrorMouseEvent.clientX,
+            top: this.lastMirrorMouseEvent.clientY,
+          }, "window");
+          let w = cm.findWordAt(lineCh);
+          q = cm.getRange(w.anchor, w.head);
+          console.log("query from cursor", "[" + q + "]");
+        }
+        break;
+      case 'QueryFromSearchBar':
+        q = this.searchBarText;
+        break;
+      default:
+        throw ('Unknown querySource: ' + querySource)
+      }
+
+      if (mode != "Lax" && mode != "Boundary" && mode != "Raw") {
+        throw ('Unknown mode: ' + mode)
+      }
+
+      if (q.length > 0) {
+        this.collapseRefsOnNextRefClick = querySource == 'QueryFromSearchBar';
+        this._startSearchXref(q, mode, invertCaseBehavior)
+      }
+    },
+    _startSearchXref(toSearch, mode, invertCaseBehavior) {
+      // Trigger a selection-based search.
+      // We interpret 'toSearch' casing in a Zoekt-compatible way:
+      //
+      //  - small caps means ignore case
+      //  - mixed/upper caps means keep case
+      //
+      // If invertCaseBehavior is true, will explicitly request opposite
+      // Zoekt case behavior.
+      let zoektCase = "auto";
+      if (invertCaseBehavior) {
+        let lowered = toSearch.toLowerCase();
+        let wasIgnoreCase = toSearch == lowered;
+        zoektCase = wasIgnoreCase ? "yes" : "no";
+      }
+      this.refData = null;
+      this.refsLoading = true;  // TODO counterize
+
+      axios.get('/api/search-xref', {
+        params: {
+          selection: toSearch,
+          casing: zoektCase,
+          mode: mode,
+          ticket: this.renderedTicket,
+        },
+        // TODO cancelToken / canceller
+      })
+        .then(response => {
+          console.log('updating refData')
+          this.refData = {
+            refCounts: response.data.refCounts,
+            refs: response.data.refs,
+            callCount: response.data.callCount,
+            calls: response.data.calls,
+            definitions: response.data.definitions,
+            declarations: response.data.declarations,
+          };
+        })
+        .catch(err => {
+          if (!axios.isCancel(err)) {
+            console.log(err);
+          }
+        }).then(() => {
+          this.refsLoading = false;
+          // TODO remove canceller
+        });
     },
     onCmTouchStart (e) {
       console.log('touch-start', e);
@@ -313,6 +523,9 @@ export default {
     _onHoverAt(cmPos, mousePos) {
       const decors = lookupXRef(cmPos);
       if (decors.length) {
+        if (decors.length > 2) {
+          console.log("Mulitple choices", decors)
+        }
         // TODO use pluggable logic to choose.
         const ticket = chooseDecorStrategy(decors).dTarget;
         // TODO convert imperative stuff to events, let other components add
@@ -366,11 +579,121 @@ export default {
     _removeXRefHighlight() {
       clearHighlightMarkers(this.codemirror);
     },
-    onNavClick (id) {
-      const ticket = RH.idUnescape(id);
-      this._loadSource(ticket);
+    // Give back focus to main codemirror, so search and keyboard shortcuts
+    // can be triggered.
+    _giveBackFocus() {
+      this.codemirror.focus();
     },
+    onNavClick (id) {
+      const ticket = id;
+      this._loadSource(ticket);
+      this._giveBackFocus();
+    },
+    onLoadMoreTree(id, model, maybeContinuation) {
+      // HACK - see [branch version]
+      const versionlessId = id.split("@")[0]
+      console.log("fetching filetree", id, versionlessId)
+      axios.get('/api/filetree?top=' + versionlessId)  // TODO pass as param
+        .then(response => {
+          this.$set(model, "children", RH.fileTreeToNav(response.data).children);
+          if (maybeContinuation) {
+            maybeContinuation(model);
+          }
+        })
+        .catch(err => console.log(err));
+    },
+    onTheme (theme) {
+      this.cmOptions.theme = theme;
+    },
+    onRefClick (filePath) {
+      // Start restoring vpane, if needed.
+      if (this.previousVPaneSize != null) {
+        console.log('restoring vpane');
+        // Restore
+        this.vPaneSize = this.previousVPaneSize;
+        this.previousVPaneSize = null;
+        this.setupCodeMirrorHeight();
+      }
+      // Clear, so after first click no jumping around happens in refs.
+      this.collapseRefsOnNextRefClick = false;
+
+      this._focusTree(filePath, true);
+    },
+    // This filetree model handling should eventually go.. somewhere.
+    _focusTree(filePath, shouldScrollTo) {
+      console.log('focusing', filePath);
+      let parts = filePath.split("/");
+      let i = 0;
+      let go = (cur, k) => {
+        if (cur.isFile) return;
+        if (cur.children == null) {
+          // Need to make network trip to API, since this part of tree is not
+          // yet loaded. Will call back to this function with the node where
+          // children are now present.
+          this.onLoadMoreTree(cur.id, cur, (c) => go(c,k));
+        } else {
+          // TODO eventually store in map if gets slow? Below edge-case makes
+          //  that slightly more cumbersome.
+          for (let c of cur.children) {
+            // Edge-case: paths at top-level of tree can contain slash-separated
+            // parts. Zoekt-underhood returns the repos at the top level, and
+            // the repo name can contain slashes.
+            //
+            // Arguably zoekt-underhood could preprocess the repos into a tree,
+            // but let's see.
+            // console.log(c.name, i, parts[i])
+            if (c.name == parts[i]) {
+              // Normal case
+              console.log('found', c.name);
+              c.open = true;
+              i += 1;
+              if (i == parts.length) {
+                k(c);
+              } else {
+                go(c, k);
+              }
+              return;
+            } else if (i == 0 && c.name.startsWith(parts[i])) {
+              // Maybe repo edge-case
+              // HACK: remove the @version part from the end for now, until
+              //   the ref click supplies the specific version too.
+              //   See [branch version]
+              const versionlessName = c.name.split("@")[0]
+              const repoParts = versionlessName.split("/");
+              let allMatch = true;
+              for (let j = 0; j < repoParts.length; ++j) {
+                if (repoParts[j] != parts[i+j]) {
+                  allMatch = false;
+                  break;
+                }
+              }
+              if (allMatch) {
+                console.log('found slashy', c.name)
+                c.open = true;
+                i += repoParts.length;
+                go(c, k);
+              }
+            }
+          }
+        }
+      }
+      // Need nextTick in continuation, since 'go' potentially sets the
+      // recursive model, and this is the first chance for Vue to observe its
+      // properties.  So if we want FileTree's watcher to detect the change in
+      // highlight, we need to defer that update.
+      go(this.nodes, (c) => Vue.nextTick(() => {
+        console.log('hiliting', c.name);
+        c.highlight = true;
+        if (shouldScrollTo) {
+          // Did the change propagate already? Nexttick to be safe.
+          Vue.nextTick(() => scrollToLastHilit());
+        }
+        this._giveBackFocus();
+      }));
+    },
+    // Note: triggered by router changes via __render as wel.
     _loadSource (ticket, mbLineToFocus) {
+      console.log('_loadSource');
       if (this.renderedTicket == ticket) {
         console.log('same-ticket');
         if (mbLineToFocus) {
@@ -381,9 +704,12 @@ export default {
       }
       console.log('load-source-start');
       axios.get('/api/source', {
+        // See https://github.com/axios/axios/issues/907, argh.
+        transformResponse: undefined,
         params: { ticket }
       })
         .then(response => {
+          this.setupCodeMirrorHeight();
           console.log('loaded-source');
           let start = Date.now();
           resetXRefState(this.codemirror);
@@ -394,6 +720,11 @@ export default {
             this.$nextTick(() => {
               // Deferred, since codemirror needs to render.
               this._jumpToLine(mbLineToFocus);
+            });
+          } else {
+            this.$nextTick(() => {
+              // TODO keep history state and reuse last viewed line for file
+              this._jumpToLine(1);
             });
           }
           // TODO copy initial prop to data elem to avoid warning about
@@ -408,8 +739,9 @@ export default {
           this.$nextTick(function() {
             console.log('codemirror rendered in', Date.now() - start, Date.now());
           });
-          // TODO open and scroll the filetree to the source we navigated to,
-          //   maybe gated by a setting
+          // TODO open and scroll the filetree to the source we navigated to?
+          //   Now that happens on explicit Ref click, but might make more sense
+          //   to it from here.
           console.log('fetch-decors');
           axios.get('/api/decor', {
                   params: { ticket }
@@ -424,7 +756,7 @@ export default {
     },
     _jumpToLine(line) {
         const cmLine = line - 1;
-        addLineClass(this.codemirror, cmLine, "landing-line");
+        addLineClass(this.codemirror, cmLine, "uh-activeline-background");
         const margin = this.codemirror.getScrollInfo().clientHeight;
         this.codemirror.scrollIntoView({
           line: cmLine,
@@ -471,11 +803,34 @@ export default {
     mkNavBus () {
       return {
         onClick: this.onNavClick,
+        onLoadMoreTree: this.onLoadMoreTree,
+      }
+    },
+    // Note: will be gone for vuex eventually.
+    mkThemeBus () {
+      return {
+        onTheme: this.onTheme,
+      }
+    },
+    mkRefBus () {
+      return {
+        onRefClick: this.onRefClick,
       }
     },
     codemirror() {
       return this.$refs.myCm.codemirror
-    }
+    },
+    _appClasses() {
+      // cmThemeClass for the semantic-like highlights, like used in the filetree
+      return ['app', this._uhThemeClass, this._cmThemeClass];
+    },
+    _uhThemeClass() {
+      // Note: space replace for "solarized light" and "... dark"
+      return 'uh-s-' + this.cmOptions.theme.replace(' ', '-');
+    },
+    _cmThemeClass() {
+      return 'cm-s-' + this.cmOptions.theme.split(' ')[0];
+    },
   },
   watch: {
     '$route.params.ticket': function() {
@@ -497,6 +852,7 @@ export default {
     FileTree,
     codemirror,
     References,
+    Header,
 
     Splitpanes,
     Pane,
@@ -508,15 +864,26 @@ export default {
 .app {
   font-size: 13px;
   font-family: monospace;
+  overflow-x: hidden;
 }
 
 .splitpanes__pane {
   background: white !important;
 }
 
+#header {
+  height: 4vh;
+}
+#ticketDisplay {
+  display: flex;
+  justify-content: center;
+  /* TODO generate theme-fitting style */
+  border-bottom: 1px solid rgba(128,128,128,0.5);
+}
 .top-split {
   width: 100vw;
-  height: 100vh;
+  /* TODO would need +1 to max out, but then right scrollbar appears? */
+  height: 95vh;
 }
 
 .filetree-pane {
@@ -525,6 +892,13 @@ export default {
 
 .refs-pane {
   overflow: scroll;
+  display: flex;
+  flex-direction: column;
+}
+
+.refs-filler {
+  flex: 1 0 auto;
+  height: auto;
 }
 
 .baseXRef {
@@ -544,5 +918,9 @@ export default {
 }
 .landing-line {
   background: #ffeed2;
+}
+.fullHeight {
+  height: 100%;
+  overflow: auto; /* Would be nicer with unset, but then needs flex filler */
 }
 </style>
