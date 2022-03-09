@@ -5,6 +5,45 @@ Note for UnderHood: `treetide-workspace` refers to the repository root with the
 bazel `WORKSPACE` file. Reason: UnderHood was forked out from the treetide
 monorepo.
 
+Note: the Kythe backend's API is now out of sync slightly with what the UI
+expects.  Zoekt-underhood backend matches it. If keen to revive Kythe API,
+ping.
+
+## Getting started super-quickly
+
+Using docker-compose and the prebuilt JS distributables.
+
+For a quick demo with some pre-baked source repos:
+```
+$ cd docker
+$ docker-compose -f docker-compose-demo.yml up
+```
+
+For your own Zoekt index:
+```
+$ cd docker
+$ ZOEKT_INDEX_DIR=/path/to/zoekt/indexdir/ docker-compose up
+```
+
+Then navigate to http://localhost:8080. Quick usage:
+
+  - Click around in the filetree
+  - Use top search bar just like you would for Zoekt searcher, for example
+    `r:under Option f:go$`
+
+Source code navigation (could be better, but for now):
+
+  - Ctrl+click to find lax matches for word under cursor
+  - Hover with mouse + X: same lax matches as Ctrl+click
+  - Hover with mouse + C: exact-word matches
+  - Select text + V: lax matches on selection
+  - Select text + B: exact-word matches on selection
+
+Matchlist abbreviations:
+
+  - SNIP means line is same as in other hit, but file differs
+  - DUP means whole file is same as for some other hit
+
 ## Getting started quickly
 
 ### Building backend

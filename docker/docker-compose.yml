@@ -1,0 +1,20 @@
+version: "3.3"
+
+services:
+  zoekt-underhood:
+    image: ghcr.io/treetide/zoekt-underhood:main
+    restart: always
+    expose:
+      - "6080"
+    volumes:
+      - "$ZOEKT_INDEX_DIR:/index:ro"
+    command: [ "-index", "/index" ]
+
+  nginx:
+    image: treetide/underhood-nginx-dev:local
+    build:
+      context: ..
+      dockerfile: docker/underhood-nginx/Dockerfile
+    restart: always
+    ports:
+      - "8080:80"
