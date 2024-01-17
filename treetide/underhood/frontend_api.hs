@@ -12,6 +12,9 @@ module TreeTide.UnderHood.FrontendApi
     , DisplayedFile(..)
     , Snippet(..)
     --
+    , InfoApi
+    , InfoReply(..)
+    --
     , FileTreeApi
     , Subtree(..)
     , TreeEntryKind(..), treeEntryIsDir
@@ -87,6 +90,7 @@ data Decor = Decor
     , dStart :: CmPoint  -- TODO CmRange
     , dEnd :: CmPoint
     , dSpan :: Maybe Int
+    , dEdge :: Int
       -- ^ The span size of the anchor.
     }
     deriving (Eq, Ord, Show, Generic, FromJSON, ToJSON)
@@ -121,6 +125,15 @@ data DocReply = DocReply
     deriving (Eq, Ord, Show, Generic, FromJSON, ToJSON)
 
 --
+
+type InfoApi = "info"
+    :> QueryParam "ticket" Text
+    :> Get '[JSON] InfoReply
+
+data InfoReply = InfoReply
+    { bindings :: [Text]
+    }
+    deriving (Eq, Ord, Show, Generic, FromJSON, ToJSON)
 
 type XRefApi = "xref"
     :> QueryParam "ticket" Text

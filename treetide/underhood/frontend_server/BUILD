@@ -63,7 +63,7 @@ haskell_binary(
         extended("optparse-applicative"),
         extended("postgresql-simple"),
         prebuilt("base"),
-        prebuilt("base64-bytestring"),
+        prebuilt("bytestring"),
         prebuilt("containers"),
         prebuilt("data-default"),
         prebuilt("deriving-compat"),

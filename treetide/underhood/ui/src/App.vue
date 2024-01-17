@@ -1,7 +1,7 @@
 <template>
   <div :class="_appClasses">
     <!-- TODO(robinp): better automated sizing between header and rest -->
-    <Header class="header" :current-ticket="renderedTicket" :bus="mkThemeBus" />
+    <Header class="header" :current-ticket="renderedFileTicket" :bus="mkThemeBus" />
     <splitpanes horizontal class="default-theme top-split"
         @resized="onTopSplitResized"
         @resize="onTopSplitResize"
@@ -31,6 +31,13 @@
             <pre class="tooltip" id="doc_tooltip"></pre>
           </pane>
         </splitpanes>
+      </pane>
+      <pane :key="20" size="15" class="target-selector-pane">
+        <TargetSelector
+            :bus="mkRefBus"
+            :targets="hoveredDecors"
+            />
+        <div :class="'uh-background refs-filler'" />
       </pane>
       <pane :key="2" size="25" class="refs-pane">
         <References
@@ -91,6 +98,7 @@ import 'splitpanes/dist/splitpanes.css'
 import RH from './rest_helpers.js'
 import FileTree from './FileTree.vue'
 import References from './References.vue'
+import TargetSelector from './TargetSelector.vue'
 import Header from './Header.vue'
 
 // Warning: this is a shared instance? Singleton.
@@ -205,7 +213,7 @@ function timed(name, f) {
   const t0 = Date.now();
   const res = f();
   const t1 = Date.now();
-  console.log(name, t1 - t0);
+  // console.log(name, t1 - t0);
   return res;
 }
 
@@ -214,7 +222,6 @@ function chooseDecorStrategy(ds) {
   let mn = Infinity;
   let res = null;
   for (let i in ds) {
-    if (ds[i].dTarget.includes('_test')) {
       // This is a HACK - for Kythe repo specially.
       // Try on 'kythe/go/platform/delimited/dedup/dedup.go'
       //
@@ -223,8 +230,6 @@ function chooseDecorStrategy(ds) {
       // short of better options). So we should fetch (&merge?) all results from these.
       //
       // Q: how do we display these? Tabs? Tables?
-      continue;
-    }
     let span = ds[i].dSpan;
     // HACK note: we should check the edge type, and choose based on that.
     // Or display a multi-edge menu.
@@ -247,6 +252,13 @@ let looseLog = _.debounce(function(cm) {
   console.log(si.top, si.clientHeight, l1, l2, "vp", v);
  }, 25);
 
+function getMirrorPos(cm, e) {
+  return cm.coordsChar({
+    left: e.pageX,
+    top: e.pageY
+  })
+}
+
 export default {
   props: {
     ticket: String,
@@ -260,8 +272,11 @@ export default {
     return {
       nodes: null,
       code: '// Please wait for filenav to load on the left and select file.',
+      lastHoveredTicket: null,
+      hoveredDecors: [],
+      // Ticket for which crossreferences are displayed, if any.
       refTicket: null,
-      renderedTicket: null,
+      renderedFileTicket: null,
       cmOptions: {
         mode: 'text/x-go',
         undoDepth: 0,
@@ -306,12 +321,11 @@ export default {
       const thiz = this;
       cm.getWrapperElement().addEventListener('mousemove', _.debounce(
         function(e) {
-          const cmPos = cm.coordsChar({
-            left: e.pageX,
-            top: e.pageY
-          })
+          const cmPos = getMirrorPos(cm, e);
           if (cmPos) {
             thiz._onHoverAt(cmPos, e);
+          } else {
+            thiz.lastHoveredTicket = null;
           }
         },
         20));
@@ -337,27 +351,43 @@ export default {
     },
     onCmMouseDown (e) {
       console.log('mouse-down', e);
+      this._onClick(e);
     },
     onCmTouchStart (e) {
       console.log('touch-start', e);
+      this._onClick(e);
+    },
+    _onClick (e) {
+      //const cmPos = getMirrorPos(cm, e);
+      if (this.lastHoveredTicket) {
+        this.refTicket = this.lastHoveredTicket;
+      }
     },
     onCmCursorActivity (cm) {
       const c = cm.getDoc().getCursor();
     },
     _onHoverAt(cmPos, mousePos) {
       const decors = lookupXRef(cmPos);
-      if (decors.length) {
-        if (decors.length > 2) {
-          console.log("Mulitple choices", decors)
-        }
-        // TODO use pluggable logic to choose.
-        const ticket = chooseDecorStrategy(decors).dTarget;
-        // TODO convert imperative stuff to events, let other components add
-        //   these effects and more.
-        this._highlightXRefUse(ticket);
-        this._lookupDoc(ticket, mousePos);
-        this.refTicket = ticket;  // TODO on click
+      if (decors.length == 0) {
+        this.lastHoveredTicket = null;
+        return
       }
+      if (decors.length > 2) {
+        console.log("Mulitple choices", decors)
+      }
+      // TODO use pluggable logic to choose.
+      const ticket = chooseDecorStrategy(decors).dTarget;
+      if (this.lastHoveredTicket == ticket) {
+        return;
+      }
+      // TODO better place to debounce this?
+      this.hoveredDecors = decors;
+      console.log('chosen', ticket);
+      // TODO convert imperative stuff to events, let other components add
+      //   these effects and more.
+      this._highlightXRefUse(ticket);
+      this._lookupDoc(ticket, mousePos);
+      this.lastHoveredTicket = ticket;
     },
     _onHoverEnd(cmPos) {
       // If we start moving the mouse, we are likely finished reading the doc
@@ -371,6 +401,7 @@ export default {
     },
     _lookupDoc(ticket, mousePos) {
       this._docLookupStart = Date.now();
+      // TODO avoid continuous doc lookup for the same ticket
       axios.get('/api/doc', {
         params: { ticket }
       })
@@ -435,7 +466,7 @@ export default {
       }
     },
     _loadSource (ticket, mbLineToFocus) {
-      if (this.renderedTicket == ticket) {
+      if (this.renderedFileTicket == ticket) {
         console.log('same-ticket');
         if (mbLineToFocus) {
           clearLineClasses(this.codemirror);
@@ -464,7 +495,7 @@ export default {
           //   prop mutation (though it is not well-founded in this case,
           //   since :ticket comes directly from the route which we modify).
           this.ticket = ticket;
-          this.renderedTicket = ticket;
+          this.renderedFileTicket = ticket;
           this.$router.push({
             name: 'file',
             params: { ticket, line: mbLineToFocus },
@@ -537,7 +568,6 @@ export default {
         onClick: this.onNavClick,
       }
     },
-    // Note: will be gone for vuex eventually.
     mkThemeBus () {
       return {
         onTheme: this.onTheme,
@@ -583,6 +613,7 @@ export default {
     FileTree,
     codemirror,
     References,
+    TargetSelector,
     Header,
 
     Splitpanes,
@@ -623,6 +654,12 @@ export default {
 .refs-filler {
   flex: 1 0 auto;
   height: auto;
+}
+
+.target-selector-pane {
+  overflow: scroll;
+  display: flex;
+  flex-direction: column;
 }
 
 .baseXRef {

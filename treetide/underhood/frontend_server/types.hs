@@ -41,5 +41,6 @@ type ServedApi
     :<|> Api.SourceApi
     :<|> Api.DecorApi
     :<|> Api.DocApi
-    :<|> Api.XRefApi)
+    :<|> Api.XRefApi
+    :<|> Api.InfoApi)
 

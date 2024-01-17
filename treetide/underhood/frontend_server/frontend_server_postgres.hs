@@ -15,6 +15,7 @@ import           Protolude               hiding ( groupBy )
 
 import Control.Monad.Except (liftEither)
 import           Control.Monad.Free
+import qualified Data.ByteString as B
 --import qualified Data.ByteString.Base64        as Base64
 --import           Data.Default                   ( def )
 import qualified Data.List                     as L
@@ -222,7 +223,7 @@ textToServerError = withExceptT (\e -> err503 { errBody = toS e })
 
 server :: Options -> PG.PgPool -> Server ServedApi
 server opts pool =
-    serveFileTree :<|> serveSource :<|> serveDecors :<|> serveDoc :<|> serveXRef
+    serveFileTree :<|> serveSource :<|> serveDecors :<|> serveDoc :<|> serveXRef :<|> serveInfo
   where
 
     kytheUriToCrp :: K.KytheUri -> ExceptT Text IO Int64
@@ -246,6 +247,7 @@ server opts pool =
         Nothing -> kytheUriToCrp (K.KytheUri t)
         Just ht -> pure (htCrp ht)
 
+    -- TODO avoid coding to text and later back to bs?
     fetchCrpContent :: Int64 -> ExceptT Text IO Text
     fetchCrpContent crp = do
         mbBytes <- liftIO (PG.singleOnly <$> PG.queryPool pool "SELECT content FROM file WHERE crp = ?"
@@ -273,7 +275,8 @@ server opts pool =
         crp <- rawTicketToCrp rawTicket
         content <- fetchCrpContent crp
         let tab = TOfs.createOffsetTable (toS content)
-        res <- liftIO (PG.queryPool pool "SELECT a.bs, a.be, e.tcrp, e.tsigl FROM anchor a JOIN anchor_edge e USING(crp,sigl) WHERE bs IS NOT NULL AND be IS NOT NULL AND crp = ?" (PG.Only crp))
+        -- See serveXRef for ekind filter comments
+        res <- liftIO (PG.queryPool pool "SELECT a.bs, a.be, e.ekind, e.tcrp, e.tsigl FROM anchor a JOIN anchor_edge e USING(crp,sigl) WHERE bs IS NOT NULL AND be IS NOT NULL AND crp = ? AND ekind NOT IN (127, 132, 6)" (PG.Only crp))
         -- TODO(robinp): terrible O(n^2) behavior, could just get all distinct
         -- positions in one linear scan.
         let (bads, goods) = partitionEithers (map (rowToDecor tab) res)
@@ -281,14 +284,17 @@ server opts pool =
             then pure Api.DecorReply { Api.decors = goods }
             else throwError $ "Error converting positions: " <> show bads
       where
-        rowToDecor tab (bs::Int, be::Int, tcrp::Int64, tsigl::Int64) = do
+        rowToDecor tab (bs::Int, be::Int, ekind::Int, tcrp::Int64, tsigl::Int64) = do
           start <- mkPoint tab bs
           end <- mkPoint tab be
+          -- NOTE this is not Text but byte length. Should not matter mostly.
+          let spanLength = be - bs
           Right $! Api.Decor
               { Api.dTarget = "hash:" <> show tcrp <> ":" <> show tsigl
               , Api.dStart = start
               , Api.dEnd = end
-              , Api.dSpan = Nothing
+              , Api.dSpan = Just spanLength
+              , Api.dEdge = ekind
               }
         mkPoint tab bytePos =
             case TOfs.byteOffsetToLineCol tab bytePos of
@@ -301,13 +307,31 @@ server opts pool =
             return . Left $ err503 { errBody = "Missing query parameter." }
         Just _rawTicket -> panic "implement docs"
 
+    serveInfo :: Server Api.InfoApi
+    serveInfo mbRawTicket = Handler . textToServerError $ do
+        rawTicket <- liftEither (noteMay "Missing query parameter" mbRawTicket)
+        ht <- liftEither . noteMay "Not a hash ticket" . parseHashTicket $ rawTicket
+        res <- liftIO (PG.queryPool pool "SELECT a.crp, a.sigl, a.bs, a.be, e.ekind, crp.corpus, crp.root, crp.path FROM anchor a JOIN anchor_edge e USING(crp,sigl) JOIN crp USING (crp) WHERE bs IS NOT NULL AND be IS NOT NULL AND tcrp = ? AND tsigl = ? AND ekind = 11" ((htCrp ht, htSigl ht)))
+        bindings <- traverse toBinding res
+        pure Api.InfoReply
+            { Api.bindings = bindings
+            }
+      where
+        toBinding (crp::Int64, sigl::Int64, bs::Int, be::Int, ekind::Int, corpus::Text, root::Text, path::Text) = do
+          let ht = HashTicket { htCrp = crp, htSigl = sigl }
+          -- TODO cache / precalculate this thing
+          content <- fetchCrpContent crp
+          pure (bytesFrag content bs be)
+
     serveXRef :: Server Api.XRefApi
     serveXRef mbRawTicket = Handler . textToServerError $ do
         rawTicket <- liftEither (noteMay "Missing query parameter" mbRawTicket)
         ht <- liftEither . noteMay "Not a hash ticket" . parseHashTicket $ rawTicket
-        res <- liftIO (PG.queryPool pool "SELECT a.crp, a.sigl, a.bs, a.be, e.ekind, crp.corpus, crp.root, crp.path FROM anchor a JOIN anchor_edge e USING(crp,sigl) JOIN crp USING (crp) WHERE bs IS NOT NULL AND be IS NOT NULL AND tcrp = ? AND tsigl = ?" ((htCrp ht, htSigl ht)))
+        -- ekind: exclude implicits (27. 32) and childof (6)
+        res <- liftIO (PG.queryPool pool "SELECT a.crp, a.sigl, a.bs, a.be, e.ekind, crp.corpus, crp.root, crp.path FROM anchor a JOIN anchor_edge e USING(crp,sigl) JOIN crp USING (crp) WHERE bs IS NOT NULL AND be IS NOT NULL AND tcrp = ? AND tsigl = ? AND ekind NOT IN (127, 132, 6) LIMIT 500" ((htCrp ht, htSigl ht)))
+        refs <- catMaybes <$> traverse toSite res
         pure Api.XRefReply
-            { Api.refs = map toSite res
+            { Api.refs = refs
             , Api.refCount = length res
             , Api.calls = []
             , Api.callCount = 0
@@ -315,24 +339,37 @@ server opts pool =
             , Api.declarations = []
             }
       where
-        toSite (crp::Int64, sigl::Int64, bs::Int, be::Int, ekind::Int, corpus::Text, root::Text, path::Text) =
+        toSite (crp::Int64, sigl::Int64, bs::Int, be::Int, ekind::Int, corpus::Text, root::Text, path::Text) = do
           let ht = HashTicket { htCrp = crp, htSigl = sigl }
-          in Api.Site {
-            Api.sContainingFile = Api.DisplayedFile
-                { Api.dfFileTicket = renderHashTicket ht
-                , Api.dfDisplayName = corpus <> ":" <> root <> "/" <> path
-                }
-            , Api.sSnippet = Api.Snippet
-                { Api.snippetText = "foobar"
-                , Api.snippetFullSpan = aSpan
-                , Api.snippetOccurrenceSpan = aSpan
-                }
-          }
-        aSpan = Api.CmRange
-            { Api.from = Api.CmPoint { Api.line = 1, Api.ch = 1 }
-            , Api.to = Api.CmPoint { Api.line = 1, Api.ch = 5 }
+          -- TODO cache / precalculate this thing
+          content <- fetchCrpContent crp
+          let tab = TOfs.createOffsetTable (toS content)
+          case TOfs.byteOffsetToLineCol tab bs of
+                Nothing -> pure Nothing
+                Just (TOfs.LineCol sl sc) -> case TOfs.byteOffsetToLineCol tab be of
+                  Nothing -> pure Nothing
+                  Just (TOfs.LineCol el ec) ->
+                      pure $ Just $ Api.Site {
+                        Api.sContainingFile = Api.DisplayedFile
+                            { Api.dfFileTicket = renderHashTicket ht
+                            , Api.dfDisplayName = corpus <> ":" <> root <> "/" <> path
+                            }
+                        , Api.sSnippet = Api.Snippet
+                            { Api.snippetText = bytesFrag content bs be
+                                <> " ekind:" <> show ekind
+                            , Api.snippetFullSpan = mkSpan sl sc el ec
+                            , Api.snippetOccurrenceSpan = mkSpan sl sc el ec
+                            }
+                      }
+        mkSpan sl sc el ec = Api.CmRange
+            { Api.from = Api.CmPoint { Api.line = sl, Api.ch = sc }
+            , Api.to = Api.CmPoint { Api.line = el, Api.ch = ec }
             }
 
+
+-- TODO take raw bytestring to avoid decoding
+bytesFrag :: Text -> Int -> Int -> Text
+bytesFrag t s e = T.decodeUtf8With T.lenientDecode . B.take (e - s) . B.drop s . toS $ t
 
 data Options = Options
     { oPort :: Int
