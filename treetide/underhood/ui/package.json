@@ -12,7 +12,7 @@
   "author": "Robin Palotai",
   "license": "ISC",
   "devDependencies": {
-    "@vue/cli": "^3.7.0",
+    "@vue/cli": "^5.0.8",
     "css-loader": "^2.1.0",
     "exports-loader": "^0.7.0",
     "file-loader": "^3.0.1",
