@@ -11,10 +11,10 @@ services:
     command: [ "-index", "/index" ]
 
   nginx:
-    image: treetide/underhood-nginx-dev:local
+    image: ghcr.io/treetide/underhood-nginx-dev:local
     build:
-      context: ..
+      context: ../..
       dockerfile: docker/underhood-nginx/Dockerfile
     restart: always
     ports:
-      - "8080:80"
+      - "8087:80"
