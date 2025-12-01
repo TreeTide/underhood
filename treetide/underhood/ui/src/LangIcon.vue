@@ -1,17 +1,13 @@
 <template>
   <div class="langIcon">
-    <!-- Hack, haskell not compiled into devicon fonts yet -->
-    <span v-if="isHaskell">
-      <img class="tinyIcon" :src='require("devicon/haskell/haskell-original.svg")' />
-    </span>
-    <i v-else :class="deviconClass"></i>
+    <i :class="deviconClass"></i>
   </div>
 </template>
 
 <script>
 // Note: not using devicon-colors, since it doesn't play together nicely with
 // themes.
-import 'devicon/devicon.css';
+import 'devicon/devicon-base.css';
 
 export default {
   props: {
@@ -43,10 +39,6 @@ export default {
         return undefined;
       }
       return mapping[parts[parts.length - 1]];
-    },
-
-    isHaskell() {
-      return this.iconName == "haskell";
     },
 
     deviconClass() {

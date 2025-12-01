@@ -29,7 +29,7 @@
     "axios": "^0.18.1",
     "codemirror": "^5.43.0",
     "color": "^3.1.0",
-    "devicon": "github:konpa/devicon",
+    "devicon": "github:devicons/devicon",
     "jquery2": "^2.0.3-a",
     "jss": "^10.0.0-alpha.3",
     "jss-preset-default": "^10.0.0-alpha.7",
