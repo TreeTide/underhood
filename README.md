@@ -9,14 +9,18 @@ Using podman compose and the prebuilt JS distributables.
 ### Using a demo index
 
 For a quick demo with some pre-baked source repos:
-`
+
+```
 $ cd docker
 $ podman compose -f docker-compose-demo.yml up
+
 ```
 ### Using your own Zoekt index
+
 ```
 $ cd docker
 $ ZOEKT_INDEX_DIR=/path/to/zoekt/indexdir/ podman compose up
+
 ```
 
 ## UI navigation and usage

@@ -4,13 +4,16 @@ services:
   bake-demo-index:
     image: ghcr.io/treetide/underhood-bake-demo-index:local
     build:
-      context: ..
-      dockerfile: docker/demo-index/Dockerfile
+      context: demo-index
+      dockerfile: Dockerfile
     volumes:
       - "demoindex:/out"
 
   zoekt-underhood:
-    image: ghcr.io/treetide/zoekt-underhood:main
+    image: ghcr.io/treetide/zoekt-underhood:local
+    build:
+      context: ../zoekt-underhood
+      dockerfile: Dockerfile
     restart: always
     expose:
       - "6080"
