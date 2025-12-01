@@ -1,2 +1,0 @@
-build --host_platform=@rules_haskell//haskell/platforms:linux_x86_64_nixpkgs
-build --noincompatible_use_python_toolchains

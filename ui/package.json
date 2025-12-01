@@ -10,7 +10,7 @@
     "start:dev": "webpack-dev-server --mode 'development' --hot"
   },
   "author": "Robin Palotai",
-  "license": "ISC",
+  "license": "BSD-3-Clause",
   "devDependencies": {
     "@vue/cli": "^3.7.0",
     "css-loader": "^2.1.0",
