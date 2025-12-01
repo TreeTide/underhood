@@ -2,7 +2,10 @@ version: "3.3"
 
 services:
   zoekt-underhood:
-    image: ghcr.io/treetide/zoekt-underhood:main
+    image: ghcr.io/treetide/zoekt-underhood:local
+    build:
+      context: ../zoekt-underhood
+      dockerfile: Dockerfile
     restart: always
     expose:
       - "6080"
@@ -17,4 +20,4 @@ services:
       dockerfile: docker/underhood-nginx/Dockerfile
     restart: always
     ports:
-      - "8087:80"
+      - "8080:80"
