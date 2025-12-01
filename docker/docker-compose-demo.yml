@@ -2,7 +2,7 @@ version: "3.3"
 
 services:
   bake-demo-index:
-    image: treetide/underhood-bake-demo-index:local
+    image: ghcr.io/treetide/underhood-bake-demo-index:local
     build:
       context: ..
       dockerfile: docker/demo-index/Dockerfile
@@ -19,7 +19,7 @@ services:
     command: [ "-index", "/index" ]
 
   nginx:
-    image: treetide/underhood-nginx-dev:local
+    image: ghcr.io/treetide/underhood-nginx-dev:local
     build:
       context: ..
       dockerfile: docker/underhood-nginx/Dockerfile
