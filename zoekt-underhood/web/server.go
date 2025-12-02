@@ -13,8 +13,8 @@ import (
 
 	"golang.org/x/net/context"
 
-	"github.com/google/zoekt"
-	"github.com/google/zoekt/query"
+	"github.com/sourcegraph/zoekt"
+	"github.com/sourcegraph/zoekt/query"
 )
 
 // Notes:
@@ -127,7 +127,7 @@ func (s *Server) serveFileTreeErr(w http.ResponseWriter, r *http.Request) error 
 	subtrees := []FileTree{}
 	if topRepo == "" {
 		opts := zoekt.ListOptions{
-			Minimal: false, // maybe?
+			Field: 0,
 		}
 		result, err := s.Searcher.List(ctx, q, &opts)
 		if err != nil {
@@ -425,7 +425,7 @@ func (s *Server) serveSearchXrefErr(w http.ResponseWriter, r *http.Request) erro
 	if mode == "Raw" {
 		rq = selection
 	} else {
-		// See https://github.com/google/zoekt/issues/139 for not wrapping in quotes
+		// See https://github.com/sourcegraph/zoekt/issues/139 for not wrapping in quotes
 		moddedSelection := escapeLiteralQuery(selection)
 		if mode == "Boundary" {
 			moddedSelection = "\\b" + moddedSelection + "\\b"
@@ -545,7 +545,8 @@ func (s *Server) appendSearches(rq string, ctx context.Context, manyFileSites *[
 	// Number of files to return - fixed for now. TODO: expose as param
 	num := 500
 
-	// BEGIN cargo-cult limiting from zoekt:web/server.go
+	// TODO(limits): revise in light of zoekt upstream changes. See for example ShardRepoMaxMatchCount.
+	// BEGIN cargo-cult limiting from zoekt:internal/json/json.go
 	if result, err := s.Searcher.Search(ctx, q, &zoekt.SearchOptions{EstimateDocCount: true}); err != nil {
 		return err
 	} else if numdocs := result.ShardFilesConsidered; numdocs > 10000 {
@@ -558,17 +559,12 @@ func (s *Server) appendSearches(rq string, ctx context.Context, manyFileSites *[
 
 		// 10k docs, 50 num -> max match = (250 + 250 / 10)
 		sOpts.ShardMaxMatchCount = num*5 + (5*num)/(numdocs/1000)
-
-		// 10k docs, 50 num -> max important match = 4
-		sOpts.ShardMaxImportantMatch = num/20 + num/(numdocs/500)
 	} else {
 		// Virtually no limits for a small corpus; important
 		// matches are just as expensive as normal matches.
 		n := numdocs + num*100
-		sOpts.ShardMaxImportantMatch = n
 		sOpts.ShardMaxMatchCount = n
 		sOpts.TotalMaxMatchCount = n
-		sOpts.TotalMaxImportantMatch = n
 	}
 	sOpts.MaxDocDisplayCount = num
 
@@ -643,7 +639,7 @@ type ticket struct {
 func parseTicket(t string) (ticket, error) {
 	// TODO: [ticket escaping] would be needed, in case it can contain colon.
 	//   But, it seems Zoekt doesn't escape either internally (see ResultID), so
-	//   maby we can live with assuming colon won't be part of filenames.
+	//   maybe we can live with assuming colon won't be part of filenames.
 	parts := strings.SplitN(t, ":", 2)
 	res := ticket{}
 	if len(parts) > 0 {
