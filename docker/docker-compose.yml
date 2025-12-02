@@ -16,7 +16,7 @@ services:
   nginx:
     image: ghcr.io/treetide/underhood-nginx-dev:local
     build:
-      context: ../..
+      context: ..
       dockerfile: docker/underhood-nginx/Dockerfile
     restart: always
     ports:
