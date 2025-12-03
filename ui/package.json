@@ -2,7 +2,7 @@
   "name": "underhood-ui",
   "version": "2.0.1",
   "description": "An UI for underhood.",
-  "private": true,
+  "private": false,
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "webpack --mode 'development'",

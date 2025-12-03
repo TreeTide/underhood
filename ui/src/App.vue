@@ -390,6 +390,7 @@ export default {
     },
     onSearchBarText(q) {
       this.searchBarText = q;
+      this.setWindowTitle(q);
       this._startSearchXrefInMode("QueryFromSearchBar", "Raw", false);
       if (this.previousVPaneSize == null) {
         this.previousVPaneSize = this.vPaneSize;
@@ -432,6 +433,9 @@ export default {
           return;
       }
       this._startSearchXrefInMode(querySource, mode, invertCase);
+    },
+    setWindowTitle(part) {
+      document.title = part + ' - Underhood';
     },
     _startSearchXrefInMode(querySource, mode, invertCaseBehavior) {
       console.log('Xref search', querySource, mode, invertCaseBehavior);
@@ -750,7 +754,7 @@ export default {
         .catch(err => console.log(err));
     },
     _jumpToLine(line) {
-        const cmLine = line - 1;
+        const cmLine = Math.max(0, line - 1);
         addLineClass(this.codemirror, cmLine, "uh-activeline-background");
         const margin = this.codemirror.getScrollInfo().clientHeight;
         this.codemirror.scrollIntoView({
@@ -759,6 +763,11 @@ export default {
         }, /* vertical pixels around */ margin/2);
     },
     navigateToFileLineIfNeeded(routeParams) {
+      if (routeParams.ticket) {
+        const parts = routeParams.ticket.split('/');
+        const lastPart = parts[parts.length - 1];
+        this.setWindowTitle(lastPart + (routeParams.line ? (":" + routeParams.line) : "") + " (" + routeParams.ticket + ")");
+      }
       const curParams = this.$router.currentRoute.params;
       if (isEqual(curParams, routeParams)) {
         console.log('Preventing duplicate navigation');
