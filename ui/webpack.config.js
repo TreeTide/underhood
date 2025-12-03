@@ -19,8 +19,6 @@ const config = {
       template: 'src/index.html',
     }),
     new webpack.ProvidePlugin({
-      $: 'jquery2',
-      jQuery: 'jquery2',
       _: 'lodash',
     }),
     new VueLoaderPlugin(),

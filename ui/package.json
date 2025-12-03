@@ -25,14 +25,13 @@
     "webpack-dev-server": "^5.2.2"
   },
   "dependencies": {
-    "axios": "^0.18.1",
+    "axios": "^1.13.2",
     "codemirror": "^5.43.0",
-    "color": "^3.1.0",
+    "color": "^3.2.1",
     "devicon": "github:devicons/devicon",
-    "jquery2": "^2.0.3-a",
     "jss": "^10.0.0-alpha.3",
-    "jss-preset-default": "^10.0.0-alpha.7",
-    "lodash": "^4.17.15",
+    "jss-preset-default": "^10.10.0",
+    "lodash": "^4.17.21",
     "normalize.css": "^8.0.1",
     "splitpanes": "^2.2.1",
     "vue": "^2.5.22",
