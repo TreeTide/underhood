@@ -54,6 +54,7 @@
 <script>
 import axios from 'axios';
 import Vue from 'vue';
+import isEqual from 'lodash/isEqual';
 //
 import CodeMirror from 'codemirror';
 import 'codemirror/lib/codemirror.css';
@@ -291,6 +292,7 @@ export default {
       vPaneSize: 75,
       // Saves vPaneSize when using top-bar search, to restore later.
       previousVPaneSize: null,
+      preventFileTreeScroll: false,
     }
   },
   mounted() {
@@ -585,13 +587,13 @@ export default {
       this.codemirror.focus();
     },
     onNavClick (id) {
-      const ticket = id;
-      this._loadSource(ticket);
+      this.preventFileTreeScroll = true;
+      this.navigateToFileLineIfNeeded({ ticket: id, line: null });
       this._giveBackFocus();
     },
     onLoadMoreTree(id, model, maybeContinuation) {
-      // HACK - see [branch version]
-      const versionlessId = id.split("@")[0]
+      // HACK(branch-versions)
+      const versionlessId = id; // id.split("@")[0]
       console.log("fetching filetree", id, versionlessId)
       axios.get('/api/filetree?top=' + versionlessId)  // TODO pass as param
         .then(response => {
@@ -605,7 +607,8 @@ export default {
     onTheme (theme) {
       this.cmOptions.theme = theme;
     },
-    onRefClick (filePath) {
+    onRefClick (routeParams) {
+      this.navigateToFileLineIfNeeded(routeParams);
       // Start restoring vpane, if needed.
       if (this.previousVPaneSize != null) {
         console.log('restoring vpane');
@@ -616,11 +619,10 @@ export default {
       }
       // Clear, so after first click no jumping around happens in refs.
       this.collapseRefsOnNextRefClick = false;
-
-      this._focusTree(filePath, true);
     },
     // This filetree model handling should eventually go.. somewhere.
-    _focusTree(filePath, shouldScrollTo) {
+    _focusTree(filePath) {
+      const shouldScrollTo = true;
       console.log('focusing', filePath);
       let parts = filePath.split("/");
       let i = 0;
@@ -655,10 +657,9 @@ export default {
               return;
             } else if (i == 0 && c.name.startsWith(parts[i])) {
               // Maybe repo edge-case
-              // HACK: remove the @version part from the end for now, until
-              //   the ref click supplies the specific version too.
-              //   See [branch version]
-              const versionlessName = c.name.split("@")[0]
+              // NOTE(branch-versions): eventually support different versions.
+              // For now we don't have.
+              const versionlessName = c.name;  // .split("@")[0]
               const repoParts = versionlessName.split("/");
               let allMatch = true;
               for (let j = 0; j < repoParts.length; ++j) {
@@ -684,10 +685,11 @@ export default {
       go(this.nodes, (c) => Vue.nextTick(() => {
         console.log('hiliting', c.name);
         c.highlight = true;
-        if (shouldScrollTo) {
+        if (shouldScrollTo && !this.preventFileTreeScroll) {
           // Did the change propagate already? Nexttick to be safe.
           Vue.nextTick(() => scrollToLastHilit());
         }
+        this.preventFileTreeScroll = false;
         this._giveBackFocus();
       }));
     },
@@ -727,21 +729,14 @@ export default {
               this._jumpToLine(1);
             });
           }
-          // TODO copy initial prop to data elem to avoid warning about
-          //   prop mutation (though it is not well-founded in this case,
-          //   since :ticket comes directly from the route which we modify).
-          this.ticket = ticket;
           this.renderedTicket = ticket;
-          this.$router.push({
-            name: 'file',
-            params: { ticket, line: mbLineToFocus },
-          });
+          this.navigateToFileLineIfNeeded({ ticket, line: mbLineToFocus });
           this.$nextTick(function() {
             console.log('codemirror rendered in', Date.now() - start, Date.now());
           });
-          // TODO open and scroll the filetree to the source we navigated to?
-          //   Now that happens on explicit Ref click, but might make more sense
-          //   to it from here.
+          // See NOTE(ticket-display).
+          this._focusTree(ticket.replace(':', '/'));
+
           console.log('fetch-decors');
           axios.get('/api/decor', {
                   params: { ticket }
@@ -762,6 +757,17 @@ export default {
           line: cmLine,
           ch: 0,
         }, /* vertical pixels around */ margin/2);
+    },
+    navigateToFileLineIfNeeded(routeParams) {
+      const curParams = this.$router.currentRoute.params;
+      if (isEqual(curParams, routeParams)) {
+        console.log('Preventing duplicate navigation');
+        return;
+      }
+      this.$router.push({
+        name: 'file',
+        params: routeParams,
+      });
     },
     markupRefs (rs) {
       console.log('start-markup; xrefs to add', rs.decors.length);
@@ -789,15 +795,14 @@ export default {
           console.log('xref-add-chunk took', end-start);
           setTimeout(go, 20);
         } else {
-          console.log('done-morkup');
+          console.log('done-markup');
         }
       };
       go();
     },
-    __render: _.debounce(function() {
-      // Debounced so different param changes observe only 1 reload.
-      this._loadSource(this.ticket, this.line);
-    }, 5),
+    __render: function(route) {
+      this._loadSource(route.params.ticket, route.params.line);
+    },
   },
   computed: {
     mkNavBus () {
@@ -806,7 +811,6 @@ export default {
         onLoadMoreTree: this.onLoadMoreTree,
       }
     },
-    // Note: will be gone for vuex eventually.
     mkThemeBus () {
       return {
         onTheme: this.onTheme,
@@ -832,13 +836,17 @@ export default {
       return 'cm-s-' + this.cmOptions.theme.split(' ')[0];
     },
   },
-  watch: {
-    '$route.params.ticket': function() {
-      this.__render();
-    },
-    '$route.params.line': function() {
-      this.__render();
-    },
+  beforeRouteUpdate(route, old, next) {
+    //console.log('beforeRouteUpdate', route);
+    this.__render(route);
+    next();
+  },
+  beforeRouteEnter (to, from, next) {
+    // Special for beforeRouteEnter: need next tick to access instance.
+    next(vm => {
+      //console.log('beforeRouteEnter', to);
+      vm.__render(to);
+    });
   },
   created () {
     axios.get('/api/filetree')
@@ -846,7 +854,6 @@ export default {
         this.nodes = RH.fileTreeToNav(response.data);
       })
       .catch(err => console.log(err));
-    this.__render();
   },
   components: {
     FileTree,

@@ -243,16 +243,7 @@ export default {
 
     onClick(e, r, s) {
       console.log("clicky", r, s);
-      // Note: this router handling could move to app, passing params
-      // through the bus too.
-      this.$router.push({
-        name: 'file',
-        params: {
-          ticket: r.sContainingFile.dfFileTicket,
-          line: this._refVisualLine2(s),
-        },
-      });
-
+      
       // TODO: dfDisplayName is not the file-tree-mapped name, so can't be
       // directly used to open / highlight the filetree.
       // HACK: replace ":" with "/" for now, which will help zoekt-based
@@ -261,12 +252,19 @@ export default {
       //
       // TODO: [branch version] Need to pass the name/version of the repo
       // branch as well, so UI can properly identify among multiple repos
-      this.bus.onRefClick(r.sContainingFile.dfDisplayName.replace(":", "/"), e);
+      //
+      // TODO(ticket-display): for now the file ticket and display name will coincide.
+      // Do we ever have a non-1:1 mapping between these?
+      //
+      this.bus.onRefClick({
+        ticket: r.sContainingFile.dfFileTicket,
+        line: this._refVisualLine2(s),
+      });
 
       // NOTE: Can we keep the element in focus, after the ref panel collapses
       // back to small size after a top-bar search? Having the vpane move
       // smoothly is a problem, we don't know when to focus.
-      // In the mean time, an ugly hack:
+      // In the meantime, an ugly hack:
       if (this.scrollOnClick) {
         setTimeout(() => {
           e.target.scrollIntoView();
