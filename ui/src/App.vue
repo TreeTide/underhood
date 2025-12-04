@@ -1,7 +1,7 @@
 <template>
   <div :class="_appClasses">
     <!-- TODO(robinp): better automated sizing between header and rest -->
-    <Header id="header" :current-ticket="renderedTicket" :bus="mkThemeBus"
+    <Header id="header" :current-ticket="renderedTicket" :bus="mkHeaderBus"
         @search-bar-text="onSearchBarText"/>
     <splitpanes horizontal class="default-theme top-split"
         @resized="onTopSplitResized"
@@ -58,11 +58,15 @@ import isEqual from 'lodash/isEqual';
 //
 import CodeMirror from 'codemirror';
 import 'codemirror/lib/codemirror.css';
-// Language syntax modules
+// TODO(language-support): Language syntax modules
 import 'codemirror/mode/clike/clike.js';
 import 'codemirror/mode/python/python.js';
 import 'codemirror/mode/go/go.js';
 import 'codemirror/mode/haskell/haskell.js';
+// Functionality
+import 'codemirror/keymap/sublime.js';
+import 'codemirror/keymap/emacs.js';
+import 'codemirror/keymap/vim.js';
 // Themes and our shims (see scripts/extract_supported_themes.sh).
 // Base
 import '../static/css/base.css';
@@ -385,16 +389,18 @@ export default {
       renderedTicket: null,
       searchBarText: "",
       cmOptions: {
-        mode: 'text/x-go',
+        mode: 'text/x-go',  // TODO(language-support): dynamic
         undoDepth: 0,
         lineNumbers: true,
+        line: true,
         theme: 'zenburn',
-        // TODO: with Infinitiy, full-page-search works, but rendering and
-        //   adding xrefs to big docs gets slow. We should add our own search,
-        //   then can ditch Infitity, so we get speedup.
-        viewportMargin: 10,  // Infinity,
+        // NOTE(large-document): with Infinitiy, full-page-search works, but rendering and
+        //   adding xrefs to big docs gets slow. With the default of 10, we
+        //   need the search extension (or custom search) to make search work.
+        viewportMargin: 10, // The default.
         readOnly: true,
-        cursorBlinkRate: -1,
+        //cursorBlinkRate: -1,
+        keyMap: 'sublime',
       },
       lastMirrorMouseEvent: null,
       vPaneSize: 75,
@@ -460,7 +466,7 @@ export default {
     onCmReady (cm) {
       cm.on('mousedown', this.onCmMouseDown);
       cm.on('touchstart', this.onCmTouchStart);
-      cm.on('keydown', this.onCmKeyDown);
+      //cm.on('keydown', this.onCmKeyDown);
       const thiz = this;
       cm.getWrapperElement().addEventListener('mousemove', function(e) {
         thiz.lastMirrorMouseEvent = e;
@@ -515,7 +521,8 @@ export default {
       }
     },
     onCmKeyDown (cm, e) {
-      // console.log('key-down', e);
+      //console.log('key-down', e);
+    
       // TODO configurable keys.
       let invertCase = e.shiftKey;
       let querySource = "";
@@ -717,6 +724,9 @@ export default {
     onTheme (theme) {
       this.cmOptions.theme = theme;
     },
+    onKeyMap (km) {
+      this.cmOptions.keyMap = km;
+    },
     onRefClick (routeParams) {
       this.navigateToFileLineIfNeeded(routeParams);
       // Start restoring vpane, if needed.
@@ -908,9 +918,10 @@ export default {
         onLoadMoreTree: this.onLoadMoreTree,
       }
     },
-    mkThemeBus () {
+    mkHeaderBus () {
       return {
         onTheme: this.onTheme,
+        onKeyMap: this.onKeyMap,
       }
     },
     mkRefBus () {
