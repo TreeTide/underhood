@@ -83,24 +83,30 @@ func (s *Server) serveFileTreeErr(w http.ResponseWriter, r *http.Request) error 
 	}
 	topRepo := ticket.repo
 	topPath := ticket.path
+	topBranch := ticket.branch
 
 	sOpts := zoekt.SearchOptions{
 		MaxWallTime: 10 * time.Second,
 	}
 	sOpts.SetDefaults()
-	// TODO get num estimate etc
 
 	ctx := r.Context()
 
 	rq := "r:"
 	if topRepo != "" {
-		// TODO: [repo filter] in Zoekt is substring-match now, and pinning with
-		//     regexp is not supported. So we must filter for the exact repo when
-		//     iterating the results later.
+		// TODO: [repo filter] in Zoekt was substring-match now, and pinning with
+		//     regexp is already supported. Before it was not, and we must have
+		//     filtered for the exact repo when iterating the results later.
 		//
-		//     But this would be better to support explicitly in Zoekt search API.
+		//     But now it could be reworked!
 		//
-		rq += topRepo
+		rq += "^" + topRepo + "$"
+
+		if topBranch != "" {
+			// NOTE(repo-filter,branch): regexp not supporten on zoekt branch: yet.
+			//   So we need to post-filter.
+			rq += " b:" + topBranch
+		}
 
 		if topPath == "" {
 			// Well, zoekt obviously doesn't return dir matches. So something like
@@ -111,7 +117,13 @@ func (s *Server) serveFileTreeErr(w http.ResponseWriter, r *http.Request) error 
 			// to filter the relevant ones only.
 			//
 			// Note: we rely on getting back all files, so we can harvest the
-			// top-level dirs. Need to check the num estimates above to be sure.
+			// top-level dirs.
+			//
+			// TODO(filetree): Need to check the num estimates to be sure we didn't
+			// miss any dirs (due to skipped files within). Even better, could patch
+			// upstream to support one-match-per-file, to surely (ok, even more
+			// likely) fit within limits.
+			//
 			rq += " f:^.*$"
 		} else {
 			rq += " f:^" + topPath + "/.*$"
@@ -172,6 +184,18 @@ func (s *Server) serveFileTreeErr(w http.ResponseWriter, r *http.Request) error 
 			if f.Repository != topRepo {
 				// See [repo filter]
 				continue
+			}
+			if topBranch != "" {
+				found := false
+				for _, b := range f.Branches {
+					if b == topBranch {
+						found = true
+						break
+					}
+				}
+				if !found {
+					continue
+				}
 			}
 			prefix := ""
 			if topPath != "" {
@@ -242,6 +266,7 @@ func (s *Server) serveSourceErr(w http.ResponseWriter, r *http.Request) error {
 		return fmt.Errorf("Expected ticket in repo:path format")
 	}
 	repo := tick.repo
+	branch := tick.branch
 	path := tick.path
 
 	sOpts := zoekt.SearchOptions{
@@ -256,6 +281,11 @@ func (s *Server) serveSourceErr(w http.ResponseWriter, r *http.Request) error {
 
 	// Note the [repo filter].
 	rq := "r:" + repo + " f:^" + path + "$"
+	if branch != "" {
+		// TODO(repo-filter,branch): the zoekt branch filter is substring-based
+		//   and doesn't support regexp (plumb through or work around?).
+		rq += " b:" + branch
+	}
 	log.Printf("query: %v", rq)
 
 	q, err := query.Parse(rq)
@@ -342,6 +372,7 @@ type UhFileSites struct {
 type UhDisplayedFile struct {
 	FileTicket  string `json:"dfFileTicket"`
 	DisplayName string `json:"dfDisplayName"`
+	Branches []string `json:"dfBranches"`
 }
 
 type UhSnippet struct {
@@ -412,6 +443,8 @@ func (s *Server) serveSearchXrefErr(w http.ResponseWriter, r *http.Request) erro
 		return fmt.Errorf("expected single ticket parameter")
 	}
 	ticket := tickets[0]
+	// TODO(branch): codepath doesn't take ticket.branch into account.
+	// Might do once the repo-filter was reworked.
 	queryTicket, err := parseTicket(ticket)
 	if err != nil {
 		return err
@@ -438,6 +471,10 @@ func (s *Server) serveSearchXrefErr(w http.ResponseWriter, r *http.Request) erro
 	}
 	// Note: if the [repo filter] was more precise, we could shoot multiple
 	// well-crafted queries and just concat them. But for now resort to sorting.
+	//
+	// TODO(repo-filter): actually repo-filter with recent zoekt accepts regex,
+	// so this can be reworked.
+	//
 	sort.SliceStable(fileSites, func(i, j int) bool {
 		ti, err := parseTicket(fileSites[i].containingFile.FileTicket)
 		if err != nil {
@@ -574,10 +611,16 @@ func (s *Server) appendSearches(rq string, ctx context.Context, manyFileSites *[
 	}
 
 	for _, f := range result.Files {
-		ticket := f.Repository + ":" + f.FileName
+		// NOTE(branches): the ticket we return here is a branch-less
+		// ticket, and we indicate the possible branches separately. The client
+		// will need to compose the specific branch they are interested in upon
+		// request.
+		ticket := f.Repository
+		ticket += ":" + f.FileName
 		inFile := UhDisplayedFile{
 			FileTicket:  ticket,
 			DisplayName: ticket,
+			Branches: f.Branches,
 		}
 		snippets := []UhSnippet{}
 		snippetsHash := sha1.New()
@@ -630,20 +673,34 @@ func (s *Server) appendSearches(rq string, ctx context.Context, manyFileSites *[
 	return nil
 }
 
+// ticket breaks down a unique artifact identifier to its parts.
+//
+// Any param is empty if not present in ticket.
 type ticket struct {
-	// Any param is empty if not present in ticket.
+	// The repo name. Might contain slashes (just saying).
 	repo string
+	// The branch, tag, or other version-name associated with the indexed
+	// artifact. Dependent on the indexer. Can be empty.
+	branch string
+	// Empty for non-file artifact.
 	path string
 }
 
+// parseTicket parses a stringy ticket of form "some/repo-name[@branch][:some/path]".
 func parseTicket(t string) (ticket, error) {
-	// TODO: [ticket escaping] would be needed, in case it can contain colon.
+	// NOTE(filename-colon,ticket-escaping): escaping would be needed, in case filename can contain colon.
 	//   But, it seems Zoekt doesn't escape either internally (see ResultID), so
 	//   maybe we can live with assuming colon won't be part of filenames.
+	//   Or, we can survive colons, if we only care about the initial single colon
+	//   that delimits the repo@version part.
 	parts := strings.SplitN(t, ":", 2)
 	res := ticket{}
 	if len(parts) > 0 {
-		res.repo = parts[0]
+		repoParts := strings.SplitN(parts[0], "@", 2)
+		res.repo = repoParts[0]
+		if len(repoParts) > 1 {
+			res.branch = repoParts[1]
+		}
 	}
 	if len(parts) > 1 {
 		res.path = parts[1]
@@ -651,6 +708,7 @@ func parseTicket(t string) (ticket, error) {
 	return res, nil
 }
 
+// It is fine for version to be empty.
 func (t *ticket) complete() bool {
 	return t.repo != "" && t.path != ""
 }

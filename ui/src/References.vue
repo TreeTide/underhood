@@ -6,7 +6,7 @@
     <div v-else>
       <div v-if="ticket || refData">
         <div v-if="!loading">
-          <!-- NOTE: everything except References is browen now -->
+          <!-- NOTE(kythe-to-zoekt): everything except References is browen now -->
           <div :class="_refHeadingClasses" v-if="_exists(declarations)">Declarations</div>
           <div v-for="ght in groupedDeclarations">
             <div>
@@ -79,7 +79,9 @@
           <div v-for="ght in groupedRefs">
             <div>
               <div :class="_refFileClasses">
-                <FileName :file-path="ght.head.sContainingFile.dfDisplayName"
+                <FileName
+                  :file-path="ght.head.sContainingFile.dfDisplayName"
+                  :branches="ght.head.sContainingFile.dfBranches"
                   class="clickableRef" @click="onClick($event, ght.head, ght.head.sSnippets[0])" />
               </div>
               <div v-for="refInfo in capIfNeeded(ght.head.sSnippets)">
@@ -99,6 +101,7 @@
                 <span v-else>(SNIP)</span>
                 <FileName style="display:inline"
                   :file-path="fileSites.sContainingFile.dfDisplayName"
+                  :branches="fileSites.sContainingFile.dfBranches"
                   :enable-icon="false" />
               </div>
             </div>
@@ -123,18 +126,12 @@ import 'codemirror/addon/runmode/runmode.js';
 import 'codemirror/mode/go/go.js';
 
 import FileName from './FileName.vue';
+import Ticket from './ticket.js';
 
 // TODO un-singleton
 let state = {
   canceller: null,
 };
-
-// Groups by ticket instead display file name, as in odd cases the name can
-// collide. For example root="",dir="foo/bar" collides with
-// root="foo",dir="bar".
-function xxxsiteContainerTicket(s) {
-  return xxxs.sContainingFile.dfFileTicket;
-}
 
 function _lineColString(p) {
   return p.line + ':' + p.ch;
@@ -244,20 +241,18 @@ export default {
     onClick(e, r, s) {
       console.log("clicky", r, s);
       
-      // TODO: dfDisplayName is not the file-tree-mapped name, so can't be
-      // directly used to open / highlight the filetree.
-      // HACK: replace ":" with "/" for now, which will help zoekt-based
-      // tickets to be opened. Still need to find a nicer way.
-      // (Actually having to map this is not that bad).
-      //
-      // TODO: [branch version] Need to pass the name/version of the repo
-      // branch as well, so UI can properly identify among multiple repos
-      //
-      // TODO(ticket-display): for now the file ticket and display name will coincide.
+      // For now we default, then let's plumb param with explicit choice.
+      const bs = r.sContainingFile.dfBranches;
+      const chosenBranch = bs.length > 0 ? bs[0] : null;
+      // NOTE(display-name): there's a bit of special logic in _focusTree that
+      // breaks down a file ticket name into parts that correspond with the
+      // file tree organization (handle repo name etc).
+      // 
+      // NOTE(ticket,display-name): for now the file ticket and display coincide.
       // Do we ever have a non-1:1 mapping between these?
       //
       this.bus.onRefClick({
-        ticket: r.sContainingFile.dfFileTicket,
+        ticket: Ticket.addBranchToFileTicket(r.sContainingFile.dfFileTicket, chosenBranch),
         line: this._refVisualLine2(s),
       });
 
@@ -416,12 +411,14 @@ export default {
 }
 .refHeading {
   padding-top: 2px;
+  padding-bottom: 1px;
   font-weight: bold;
   margin-bottom: 2px;
 }
 .refFile {
   margin-top: 2px;
   margin-bottom: 1px;
+  padding-bottom: 2px;
 }
 .callContext {
   margin-top: 2px;

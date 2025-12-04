@@ -1,0 +1,29 @@
+--langdef=vue
+--langmap=vue:.vue
+--regex-vue=/^(<template>)$/\1/t,template/{scope=set}{exclusive}
+--regex-vue=/^\S*(.*(v-if=|v-for=|v-show=|ref=)("[^"]*"))/\2\3/c,vuecommand/{scope=ref}
+--regex-vue=/^(<\/template>)$/\1//{scope=pop}{exclusive}{placeholder}
+--regex-vue=/^(<style.*)$/style/s,script/{scope=set}{exclusive}
+--regex-vue=/^(<\/style>)$/\1//{scope=clear}{placeholder}
+--regex-vue=/^\s*function +([a-zA-Z_][a-zA-Z0-9_]*)/\1/f,function/{scope=ref}
+--regex-vue=/^\s+([a-zA-Z_][a-zA-Z0-9_]*)\(.*\)\s*\{/\1/f,function/{scope=ref}
+--regex-vue=/^ {2}((name|'name')[^,]*)/\1/p,property/{scope=ref}
+--regex-vue=/^ {2}((data) \(|('data'):|(data):)/data/p,property/{scope=set}
+--regex-vue=/^ {2}((props) \(|('props'):|(props):)/props/p,property/{scope=set}
+--regex-vue=/^ {2}((computed) \(|('computed'):|(computed):)/computed/p,property/{scope=set}
+--regex-vue=/^ {2}((methods) \(|('methods'):|(methods):)/methods/p,property/{scope=set}
+--regex-vue=/^ {2}((components) \(|('components'):|(components):)/components/p,property/{scope=set}
+--regex-vue=/^ {2}((watch) \(|('watch'):|(watch):)/watch/p,property/{scope=set}
+--regex-vue=/^ {4}((async )?([a-zA-Z0-9_]*) \(|('[a-zA-Z0-9_\.]*'):|('[a-zA-Z0-9_\.]*') \(|([a-zA-Z0-9_]*):)/\2\3\4\5\6/p,property/{scope=ref}
+--regex-vue=/^(([a-zA-Z0-9_#\$\.\{\}-]*) \{)/\2/p,property/{scope=ref}
+--regex-vue=/^ {2}((beforeCreate) \(|('beforeCreate'):|(beforeCreate):)/beforeCreate/p,property/{scope=set}
+--regex-vue=/^ {2}((created) \(|('created'):|(created):)/created/p,property/{scope=set}
+--regex-vue=/^ {2}((beforeMount) \(|('beforeMount'):|(beforeMount):)/beforeMount/p,property/{scope=set}
+--regex-vue=/^ {2}((mounted) \(|('mounted'):|(mounted):)/mounted/p,property/{scope=set}
+--regex-vue=/^ {2}((beforeUpdate) \(|('beforeUpdate'):|(beforeUpdate):)/beforeUpdate/p,property/{scope=set}
+--regex-vue=/^ {2}((updated) \(|('updated'):|(updated):)/updated/p,property/{scope=set}
+--regex-vue=/^ {2}((activated) \(|('activated'):|(activated):)/activated/p,property/{scope=set}
+--regex-vue=/^ {2}((deactivated) \(|('deactivated'):|(deactivated):)/deactivated/p,property/{scope=set}
+--regex-vue=/^ {2}((beforeDestroy) \(|('beforeDestroy'):|(beforeDestroy):)/beforeDestroy/p,property/{scope=set}
+--regex-vue=/^ {2}((destroyed) \(|('destroyed'):|(destroyed):)/destroyed/p,property/{scope=set}
+--regex-vue=/^ {2}((errorCaptured) \(|('errorCaptured'):|(errorCaptured):)/errorCaptured/p,property/{scope=set}

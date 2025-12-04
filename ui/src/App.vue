@@ -596,10 +596,8 @@ export default {
       this._giveBackFocus();
     },
     onLoadMoreTree(id, model, maybeContinuation) {
-      // HACK(branch-versions)
-      const versionlessId = id; // id.split("@")[0]
-      console.log("fetching filetree", id, versionlessId)
-      axios.get('/api/filetree?top=' + versionlessId)  // TODO pass as param
+      console.log("fetching filetree", id);
+      axios.get('/api/filetree?top=' + id)
         .then(response => {
           this.$set(model, "children", RH.fileTreeToNav(response.data).children);
           if (maybeContinuation) {
@@ -625,10 +623,18 @@ export default {
       this.collapseRefsOnNextRefClick = false;
     },
     // This filetree model handling should eventually go.. somewhere.
-    _focusTree(filePath) {
+    _focusTree(fileTicket) {
       const shouldScrollTo = true;
-      console.log('focusing', filePath);
-      let parts = filePath.split("/");
+      console.log('focusing', fileTicket);
+      const ticketParts = fileTicket.split(':');
+      const ticketRepoBranch = ticketParts[0];
+      // NOTE(filename-colon): not likely filename contains colon, but restore
+      // it in case it does.
+      const ticketFilePath = ticketParts.slice(1).join(':');
+      let parts = ticketFilePath.split("/");
+      // The head part is always the repoBranch.
+      parts.unshift(ticketRepoBranch);
+
       let i = 0;
       let go = (cur, k) => {
         if (cur.isFile) return;
@@ -638,15 +644,7 @@ export default {
           // children are now present.
           this.onLoadMoreTree(cur.id, cur, (c) => go(c,k));
         } else {
-          // TODO eventually store in map if gets slow? Below edge-case makes
-          //  that slightly more cumbersome.
           for (let c of cur.children) {
-            // Edge-case: paths at top-level of tree can contain slash-separated
-            // parts. Zoekt-underhood returns the repos at the top level, and
-            // the repo name can contain slashes.
-            //
-            // Arguably zoekt-underhood could preprocess the repos into a tree,
-            // but let's see.
             // console.log(c.name, i, parts[i])
             if (c.name == parts[i]) {
               // Normal case
@@ -659,25 +657,6 @@ export default {
                 go(c, k);
               }
               return;
-            } else if (i == 0 && c.name.startsWith(parts[i])) {
-              // Maybe repo edge-case
-              // NOTE(branch-versions): eventually support different versions.
-              // For now we don't have.
-              const versionlessName = c.name;  // .split("@")[0]
-              const repoParts = versionlessName.split("/");
-              let allMatch = true;
-              for (let j = 0; j < repoParts.length; ++j) {
-                if (repoParts[j] != parts[i+j]) {
-                  allMatch = false;
-                  break;
-                }
-              }
-              if (allMatch) {
-                console.log('found slashy', c.name)
-                c.open = true;
-                i += repoParts.length;
-                go(c, k);
-              }
             }
           }
         }
@@ -687,10 +666,10 @@ export default {
       // properties.  So if we want FileTree's watcher to detect the change in
       // highlight, we need to defer that update.
       go(this.nodes, (c) => Vue.nextTick(() => {
-        console.log('hiliting', c.name);
+        console.log('hiliting filetree node', c.name);
         c.highlight = true;
         if (shouldScrollTo && !this.preventFileTreeScroll) {
-          // Did the change propagate already? Nexttick to be safe.
+          // Did the change propagate already? nextTick to be safe.
           Vue.nextTick(() => scrollToLastHilit());
         }
         this.preventFileTreeScroll = false;
@@ -738,8 +717,7 @@ export default {
           this.$nextTick(function() {
             console.log('codemirror rendered in', Date.now() - start, Date.now());
           });
-          // See NOTE(ticket-display).
-          this._focusTree(ticket.replace(':', '/'));
+          this._focusTree(ticket);
 
           console.log('fetch-decors');
           axios.get('/api/decor', {
