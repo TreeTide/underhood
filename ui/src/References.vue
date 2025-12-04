@@ -255,7 +255,7 @@ export default {
         // branch markup on the same instance (with zoekt currently), otherwise
         // they go to SNIP or DUP. Might remove this feat, otherwise might need
         // more integration with search params like branch control.
-        const bs = r.sContainingFile.dfBranches;
+        let bs = r.sContainingFile.dfBranches ?? [];
         if (this.defaultBranch != null && bs.indexOf(this.defaultBranch) >= 0) {
           chosenBranch = this.defaultBranch;
         } else {
