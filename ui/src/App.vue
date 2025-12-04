@@ -690,7 +690,9 @@ export default {
       console.log('load-source-start');
       axios.get('/api/source', {
         // See https://github.com/axios/axios/issues/907, argh.
-        transformResponse: undefined,
+        //transformResponse: undefined,
+        // And https://github.com/axios/axios/issues/2791, aarggh.
+        transformResponse: [(data) => data],
         params: { ticket }
       })
         .then(response => {

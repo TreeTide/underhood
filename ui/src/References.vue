@@ -83,7 +83,7 @@
                   :file-path="ght.head.sContainingFile.dfDisplayName"
                   :branches="ght.head.sContainingFile.dfBranches"
                   class="clickableRef"
-                  @file-click="(br) => onClick($event, ght.head, ght.head.sSnippets[0], br)" />
+                  @file-click="(ev, br) => onClick(ev, ght.head, ght.head.sSnippets[0], br)" />
               </div>
               <div v-for="refInfo in capIfNeeded(ght.head.sSnippets)">
                 <div v-for="ref in refInfo.values">
@@ -103,7 +103,7 @@
                   :branches="fileSites.sContainingFile.dfBranches"
                   :enable-icon="false"
                   class="clickableRef"
-                  @file-click="(br) => onClick($event, fileSites, fileSites.sSnippets[0], br)" />
+                  @file-click="(ev, br) => onClick(ev, fileSites, fileSites.sSnippets[0], br)" />
               </div>
             </div>
             <div class="sectionSpacer"/>
@@ -166,6 +166,8 @@ export default {
       calls: [],
       definitions: [],
       declarations: [],
+      // Interaction state
+      defaultBranch: null,
       // Number of outstanding requests.
       //
       // Using counter instead bool since cancelled requests can mess up a
@@ -242,15 +244,25 @@ export default {
     onClick(e, r, s, mbBranch) {
       console.log("clicky", r, s, mbBranch);
       
-      // TODO(default-branch): we could remember the last explicitly chosen
-      // branch, mark it, and on subsequent branch-less span click we could
-      // default to that branch (if available). So user can choose which branch
-      // to go for a given span.
       let chosenBranch = mbBranch;
       if (mbBranch == null) {
-        // Default to first branch found.
+        // NOTE(default-branch): we remember the last explicitly chosen
+        // branch, mark it, and on subsequent branch-less span click we could
+        // default to that branch (if available). So user can choose which branch
+        // to go for a given span.
+        //
+        // Though, this is mostly no-op, since only exact-same files get the
+        // branch markup on the same instance (with zoekt currently), otherwise
+        // they go to SNIP or DUP. Might remove this feat, otherwise might need
+        // more integration with search params like branch control.
         const bs = r.sContainingFile.dfBranches;
-        chosenBranch = bs.length > 0 ? bs[0] : null;
+        if (this.defaultBranch != null && bs.indexOf(this.defaultBranch) >= 0) {
+          chosenBranch = this.defaultBranch;
+        } else {
+          chosenBranch = bs.length > 0 ? bs[0] : null;
+        }
+      } else if (this.defaultBranch != mbBranch) {
+        this.defaultBranch = mbBranch;
       }
       // NOTE(display-name): there's a bit of special logic in _focusTree that
       // breaks down a file ticket name into parts that correspond with the
