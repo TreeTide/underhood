@@ -1,9 +1,11 @@
 <template>
-  <div @click="$emit('click', $event)">
-    <LangIcon v-if="enableIcon" :for-file="filePath" /> {{filePath}}
+  <div>
+    <LangIcon v-if="enableIcon" :for-file="filePath" />
+    <span @click="$emit('file-click')">{{filePath}}</span>
     <span 
       v-for="branch in branches"
       class="branch-label uh-background"
+      @click="$emit('file-click', branch)"
       >
       b:{{branch}}
     </span>

@@ -12,7 +12,7 @@
             <div>
               <div :class="_refFileClasses">
                 <FileName :file-path="ght.head.sContainingFile.dfDisplayName"
-                  class="clickableRef" @click="onClick($event, ght.head, ght.head.sSnippets[0])" />
+                  class="clickableRef" @file-click="onClick($event, ght.head, ght.head.sSnippets[0])" />
               </div>
               <div v-for="refInfo in capIfNeeded(ght.head.sSnippets)">
                 <div v-for="ref in refInfo.values">
@@ -82,7 +82,8 @@
                 <FileName
                   :file-path="ght.head.sContainingFile.dfDisplayName"
                   :branches="ght.head.sContainingFile.dfBranches"
-                  class="clickableRef" @click="onClick($event, ght.head, ght.head.sSnippets[0])" />
+                  class="clickableRef"
+                  @file-click="(br) => onClick($event, ght.head, ght.head.sSnippets[0], br)" />
               </div>
               <div v-for="refInfo in capIfNeeded(ght.head.sSnippets)">
                 <div v-for="ref in refInfo.values">
@@ -94,15 +95,15 @@
               </div>
             </div>
             <div v-if="ght.tail.length > 0" class="sameMatches">
-              <div v-for="fileSites in ght.tail"
-                  class="clickableRef"
-                  @click="onClick($event, fileSites, fileSites.sSnippets[0])">
+              <div v-for="fileSites in ght.tail">
                 <span v-if="fileSites.sDupOfFile">(DUP)</span>
                 <span v-else>(SNIP)</span>
                 <FileName style="display:inline"
                   :file-path="fileSites.sContainingFile.dfDisplayName"
                   :branches="fileSites.sContainingFile.dfBranches"
-                  :enable-icon="false" />
+                  :enable-icon="false"
+                  class="clickableRef"
+                  @file-click="(br) => onClick($event, fileSites, fileSites.sSnippets[0], br)" />
               </div>
             </div>
             <div class="sectionSpacer"/>
@@ -238,12 +239,19 @@ export default {
       };
     },
 
-    onClick(e, r, s) {
-      console.log("clicky", r, s);
+    onClick(e, r, s, mbBranch) {
+      console.log("clicky", r, s, mbBranch);
       
-      // For now we default, then let's plumb param with explicit choice.
-      const bs = r.sContainingFile.dfBranches;
-      const chosenBranch = bs.length > 0 ? bs[0] : null;
+      // TODO(default-branch): we could remember the last explicitly chosen
+      // branch, mark it, and on subsequent branch-less span click we could
+      // default to that branch (if available). So user can choose which branch
+      // to go for a given span.
+      let chosenBranch = mbBranch;
+      if (mbBranch == null) {
+        // Default to first branch found.
+        const bs = r.sContainingFile.dfBranches;
+        chosenBranch = bs.length > 0 ? bs[0] : null;
+      }
       // NOTE(display-name): there's a bit of special logic in _focusTree that
       // breaks down a file ticket name into parts that correspond with the
       // file tree organization (handle repo name etc).
@@ -262,7 +270,10 @@ export default {
       // In the meantime, an ugly hack:
       if (this.scrollOnClick) {
         setTimeout(() => {
-          e.target.scrollIntoView();
+          e.target.scrollIntoView({
+            behavior: 'instant',
+            block: 'center',
+          });
         }, 250);
       }
     },

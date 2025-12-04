@@ -629,11 +629,11 @@ func (s *Server) appendSearches(rq string, ctx context.Context, manyFileSites *[
 			firstFrag := l.LineFragments[0]
 			lineNum := l.LineNumber - 1
 			snippetsHash.Write(l.Line)
-			// TODO handle if non-UTF8 etc?
+			// TODO(text): handle if non-UTF8 etc?
 			clippedLine := string(l.Line)
 			if len(clippedLine) > 250 {
-				// TODO adjust returned line/ch values? or otherwise indicate clip?
-				clippedLine = clippedLine[:30] + "...line too long, clipped..." + clippedLine[len(clippedLine)-30:]
+				// TODO(text): adjust returned line/ch values? or otherwise indicate clip?
+				clippedLine = clippedLine[:30] + " [[[...line too long, clipped...]]] " + clippedLine[len(clippedLine)-30:]
 			}
 			snippet := UhSnippet{
 				Text: clippedLine,
