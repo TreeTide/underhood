@@ -58,11 +58,15 @@ import isEqual from 'lodash/isEqual';
 //
 import CodeMirror from 'codemirror';
 import 'codemirror/lib/codemirror.css';
-// TODO(language-support): Language syntax modules
+// Language syntax modules (TODO(language-support) add more)
+// Don't forget to configure in backendProgLangToCodeMirror too.
 import 'codemirror/mode/clike/clike.js';
 import 'codemirror/mode/python/python.js';
 import 'codemirror/mode/go/go.js';
 import 'codemirror/mode/haskell/haskell.js';
+import 'codemirror/mode/htmlmixed/htmlmixed.js';
+import 'codemirror/mode/protobuf/protobuf.js';
+import 'codemirror/mode/javascript/javascript.js';
 // Functionality
 import 'codemirror/keymap/sublime.js';
 import 'codemirror/keymap/emacs.js';

@@ -87,7 +87,7 @@
               </div>
               <div v-for="refInfo in capIfNeeded(ght.head.sSnippets)">
                 <div v-for="ref in refInfo.values">
-                  <div class="clickableRef" @click="onClick($event, ght.head, ref)"><span :class="_refLineClasses">{{_refVisualLine2(ref)}}</span><span v-html="_formatRefSnippet2(ref)" /></div>
+                  <div class="clickableRef" @click="onClick($event, ght.head, ref)"><span :class="_refLineClasses">{{_refVisualLine2(ref)}}</span><span v-html="_formatRefSnippet2(ref, ght.head.sContainingFile.dfLanguage)" /></div>
                 </div>
                 <div v-if="refInfo.notShown > 0" class="lineSkips">
                   ... {{ refInfo.notShown }} lines omitted ...
@@ -136,6 +136,29 @@ let state = {
 
 function _lineColString(p) {
   return p.line + ':' + p.ch;
+}
+
+function backendProgLangToCodeMirror(pl) {
+  const lng = pl.toLowerCase();
+  switch (lng) {
+    // Non-directly mappable cases here
+    case "c":
+      return "text/x-csrc";
+    case "c++":
+      return "text/x-c++src";
+    case "javascript":
+      return "text/javascript";
+    case "json":
+      return "application/json";
+    case "html":
+      return "text/html";
+    case "protocol buffer":
+      return "text/x-protobuf";
+    case "typescript":
+      return "application/typescript";
+    default:
+      return lng;
+  }
 }
 
 export default {
@@ -312,13 +335,13 @@ export default {
     _refVisualLine(r) {
       return this._refVisualLine2(r.sSnippet);
     },
-    _formatRefSnippet(r) {
-      return this._formatRefSnippet2(r.sSnippet);
+    _formatRefSnippet(r, progLang) {
+      return this._formatRefSnippet2(r.sSnippet, progLang);
     },
     _refVisualLine2(r) {
       return r.snippetOccurrenceSpan.from.line + 1;
     },
-    _formatRefSnippet2(r) {
+    _formatRefSnippet2(r, progLang) {
       // TODO only if single-line span.. or preprocess this on server-side.
       const fullSpan = r.snippetFullSpan;
       const snippetSpan = r.snippetOccurrenceSpan;
@@ -339,10 +362,18 @@ export default {
             break;
         }
       }
-      // TODO(robinp): don't use current highlightMode, rather according to
-      //   the ref's languages. Since the two might differ.
-      const mode = CodeMirror.getMode(CodeMirror.defaults, this.highlightMode);
-      return `<span class="cm-s-${this.highlightStyle}">` +
+      // NOTE(syntax-highlight): a file might have subranges using a different
+      // language. We don't support that for now, though could ship via snippet
+      // eventually.
+      const cmSyntaxMode = backendProgLangToCodeMirror(progLang);
+      const mode = CodeMirror.getMode(CodeMirror.defaults, cmSyntaxMode);
+      console.log('go', CodeMirror.getMode(CodeMirror.defaults, 'go'));
+      console.log('javascript', CodeMirror.getMode(CodeMirror.defaults, 'javascript'));
+      console.log('Using mode: ', cmSyntaxMode, mode);
+      // TODO(syntax-highlight): wouldn't it be better to run a single highlight,
+      // and work out what to emphasize after? Otherwise highlight can be broken,
+      // for example on a split string.
+      return `<span class="cm-s-${mode.name}">` +
         "&nbsp;".repeat(pad2) +
         this._highlight(mode, t.substring(0, subStart)) +
         "<span class='refPanelHighlight'>" + this._highlight(mode, t.substring(subStart, subEnd)) + "</span>" +

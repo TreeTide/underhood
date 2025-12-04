@@ -373,6 +373,7 @@ type UhDisplayedFile struct {
 	FileTicket  string `json:"dfFileTicket"`
 	DisplayName string `json:"dfDisplayName"`
 	Branches []string `json:"dfBranches"`
+	Language string `json:"dfLanguage"`
 }
 
 type UhSnippet struct {
@@ -621,6 +622,7 @@ func (s *Server) appendSearches(rq string, ctx context.Context, manyFileSites *[
 			FileTicket:  ticket,
 			DisplayName: ticket,
 			Branches: f.Branches,
+			Language: f.Language,
 		}
 		snippets := []UhSnippet{}
 		snippetsHash := sha1.New()
