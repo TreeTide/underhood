@@ -1,0 +1,12 @@
+.uh-s-yonce .uh-background { background: #1C1C1C; }
+.uh-s-yonce .uh-color {  color: #d4d4d4; }
+.uh-s-yonce .uh-color-inverted { color: #1C1C1C !important ; }
+.uh-s-yonce .uh-background-inverted { background: #d4d4d4 !important ; }
+.uh-s-yonce .uh-selected-background { background: rgba(252, 69, 133, 0.478); }
+.uh-s-yonce .splitpanes--vertical > .splitpanes__splitter { background: rgba(252, 69, 133, 0.478) !important }
+.uh-s-yonce .splitpanes--horizontal > .splitpanes__splitter { background: rgba(252, 69, 133, 0.478) !important }
+.uh-s-yonce .uh-selection-background { background: rgba(252, 67, 132, 0.47); }
+.uh-s-yonce .splitpanes--vertical > .splitpanes__splitter { border-left: 2px solid #1C1C1C !important }
+.uh-s-yonce .splitpanes--horizontal > .splitpanes__splitter { border-top: 2px solid #1C1C1C !important }
+.uh-s-yonce .uh-linenumber {  color: #777; }
+.uh-s-yonce .uh-activeline-background { background: #272727; }

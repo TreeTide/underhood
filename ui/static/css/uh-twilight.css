@@ -1,0 +1,12 @@
+.uh-s-twilight .uh-background { background: #141414; }
+.uh-s-twilight .uh-color {  color: #f7f7f7; }
+.uh-s-twilight .uh-color-inverted { color: #141414 !important ; }
+.uh-s-twilight .uh-background-inverted { background: #f7f7f7 !important ; }
+.uh-s-twilight .uh-selected-background { background: #323232; }
+.uh-s-twilight .splitpanes--vertical > .splitpanes__splitter { background: #323232 !important }
+.uh-s-twilight .splitpanes--horizontal > .splitpanes__splitter { background: #323232 !important }
+.uh-s-twilight .uh-selection-background { background: rgba(50, 50, 50, 0.99); }
+.uh-s-twilight .splitpanes--vertical > .splitpanes__splitter { border-left: 2px solid #222 !important }
+.uh-s-twilight .splitpanes--horizontal > .splitpanes__splitter { border-top: 2px solid #222 !important }
+.uh-s-twilight .uh-linenumber {  color: #aaa; }
+.uh-s-twilight .uh-activeline-background { background: #27282E; }

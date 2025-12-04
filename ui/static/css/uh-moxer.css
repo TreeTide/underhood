@@ -1,0 +1,12 @@
+.uh-s-moxer .uh-background { background-color: #090A0F; }
+.uh-s-moxer .uh-color {  color: #8E95B4; }
+.uh-s-moxer .uh-color-inverted { color: #090A0F !important ; }
+.uh-s-moxer .uh-background-inverted { background: #8E95B4 !important ; }
+.uh-s-moxer .splitpanes--vertical > .splitpanes__splitter { border-left: 2px solid #090A0F !important }
+.uh-s-moxer .splitpanes--horizontal > .splitpanes__splitter { border-top: 2px solid #090A0F !important }
+.uh-s-moxer .uh-linenumber {  color: #35394B; }
+.uh-s-moxer .uh-selected-background { background: rgba(128, 203, 196, 0.2); }
+.uh-s-moxer .splitpanes--vertical > .splitpanes__splitter { background: rgba(128, 203, 196, 0.2) !important }
+.uh-s-moxer .splitpanes--horizontal > .splitpanes__splitter { background: rgba(128, 203, 196, 0.2) !important }
+.uh-s-moxer .uh-selection-background { background: #212431; }
+.uh-s-moxer .uh-activeline-background { background: rgba(33, 36, 49, 0.5); }

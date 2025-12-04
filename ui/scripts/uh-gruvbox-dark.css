@@ -1,0 +1,13 @@
+.uh-s-gruvbox-dark .splitpanes--vertical > .splitpanes__splitter { border-left: 2px solid #282828 !important }
+.uh-s-gruvbox-dark .splitpanes--horizontal > .splitpanes__splitter { border-top: 2px solid #282828 !important }
+.uh-s-gruvbox-dark .splitpanes--vertical > .splitpanes__splitter { background: #928374 !important }
+.uh-s-gruvbox-dark .splitpanes--horizontal > .splitpanes__splitter { background: #928374 !important }
+.uh-s-gruvbox-dark .uh-activeline-background { background: #3c3836; }
+/* manual */
+.uh-s-gruvbox-dark .uh-background { background-color: #282828;  }
+.uh-s-gruvbox-dark .uh-background-inverted { background-color: #bdae93 !important;  }
+.uh-s-gruvbox-dark .uh-color {  color: #bdae93;  }
+.uh-s-gruvbox-dark .uh-color-inverted {  color: #282828 !important; }
+/* modded - darken */
+.uh-s-gruvbox-dark .uh-selected-background { background: #625344; }
+

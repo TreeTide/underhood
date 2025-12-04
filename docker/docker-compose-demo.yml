@@ -28,7 +28,7 @@ services:
       dockerfile: docker/underhood-nginx/Dockerfile
     restart: always
     ports:
-      - "8080:80"
+      - "8082:80"
 
 volumes:
   demoindex: {}

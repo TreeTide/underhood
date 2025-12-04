@@ -1,0 +1,10 @@
+.uh-s-railscasts .uh-background { background: #2b2b2b; }
+.uh-s-railscasts .uh-color {  color: #f4f1ed; }
+.uh-s-railscasts .uh-color-inverted { color: #2b2b2b !important ; }
+.uh-s-railscasts .uh-background-inverted { background: #f4f1ed !important ; }
+.uh-s-railscasts .uh-selected-background { background: #272935 !important; }
+.uh-s-railscasts .splitpanes--vertical > .splitpanes__splitter { background: #272935 !important !important }
+.uh-s-railscasts .splitpanes--horizontal > .splitpanes__splitter { background: #272935 !important !important }
+.uh-s-railscasts .splitpanes--vertical > .splitpanes__splitter { border-left: 2px solid #2b2b2b !important }
+.uh-s-railscasts .splitpanes--horizontal > .splitpanes__splitter { border-top: 2px solid #2b2b2b !important }
+.uh-s-railscasts .uh-activeline-background { background: #303040; }

@@ -1,0 +1,12 @@
+.uh-s-blackboard .uh-background { background: #0C1021; }
+.uh-s-blackboard .uh-color {  color: #F8F8F8; }
+.uh-s-blackboard .uh-color-inverted { color: #0C1021 !important ; }
+.uh-s-blackboard .uh-background-inverted { background: #F8F8F8 !important ; }
+.uh-s-blackboard .uh-selected-background { background: #253B76; }
+.uh-s-blackboard .splitpanes--vertical > .splitpanes__splitter { background: #253B76 !important }
+.uh-s-blackboard .splitpanes--horizontal > .splitpanes__splitter { background: #253B76 !important }
+.uh-s-blackboard .uh-selection-background { background: rgba(37, 59, 118, .99); }
+.uh-s-blackboard .splitpanes--vertical > .splitpanes__splitter { border-left: 2px solid #0C1021 !important }
+.uh-s-blackboard .splitpanes--horizontal > .splitpanes__splitter { border-top: 2px solid #0C1021 !important }
+.uh-s-blackboard .uh-linenumber {  color: #888; }
+.uh-s-blackboard .uh-activeline-background { background: #3C3636; }

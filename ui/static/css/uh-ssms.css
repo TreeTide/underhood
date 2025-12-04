@@ -1,0 +1,5 @@
+.uh-s-ssms .uh-linenumber {  color: teal; }
+.uh-s-ssms .uh-activeline-background { background: #ffffff; }
+.uh-s-ssms .uh-selected-background { background: #ADD6FF; }
+.uh-s-ssms .splitpanes--vertical > .splitpanes__splitter { background: #ADD6FF !important }
+.uh-s-ssms .splitpanes--horizontal > .splitpanes__splitter { background: #ADD6FF !important }

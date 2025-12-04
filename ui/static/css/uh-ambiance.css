@@ -1,0 +1,12 @@
+.uh-s-ambiance .uh-selected-background { background: rgba(255, 255, 255, 0.15); }
+.uh-s-ambiance .splitpanes--vertical > .splitpanes__splitter { background: rgba(255, 255, 255, 0.15) !important }
+.uh-s-ambiance .splitpanes--horizontal > .splitpanes__splitter { background: rgba(255, 255, 255, 0.15) !important }
+.uh-s-ambiance .uh-selection-background { background: rgba(255, 255, 255, 0.10); }
+.uh-s-ambiance .uh-background { background-color: #202020; }
+.uh-s-ambiance .uh-color {  color: #E6E1DC; }
+.uh-s-ambiance .uh-color-inverted { color: #202020 !important ; }
+.uh-s-ambiance .uh-background-inverted { background: #E6E1DC !important ; }
+.uh-s-ambiance .splitpanes--vertical > .splitpanes__splitter { border-left: 2px solid #3D3D3D !important }
+.uh-s-ambiance .splitpanes--horizontal > .splitpanes__splitter { border-top: 2px solid #3D3D3D !important }
+.uh-s-ambiance .uh-linenumber {  color: #111; }
+.uh-s-ambiance .uh-activeline-background { background: none repeat scroll 0% 0% rgba(255, 255, 255, 0.031); }

@@ -1,0 +1,6 @@
+.uh-s-liquibyte .uh-background { background-color: #000; }
+.uh-s-liquibyte .uh-color { 	color: #fff; }
+.uh-s-liquibyte .uh-color-inverted { color: #000 !important ; }
+.uh-s-liquibyte .uh-background-inverted { background: #fff !important ; }
+.uh-s-liquibyte .uh-linenumber {  color: #606060; }
+.uh-s-liquibyte .uh-selected-background { background: rgba(255, 0, 0, 0.25); }

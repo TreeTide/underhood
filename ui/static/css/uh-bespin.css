@@ -1,0 +1,10 @@
+.uh-s-bespin .uh-background { background: #28211c; }
+.uh-s-bespin .uh-color {  color: #9d9b97; }
+.uh-s-bespin .uh-color-inverted { color: #28211c !important ; }
+.uh-s-bespin .uh-background-inverted { background: #9d9b97 !important ; }
+.uh-s-bespin .uh-selected-background { background: #59554f !important; }
+.uh-s-bespin .splitpanes--vertical > .splitpanes__splitter { background: #59554f !important !important }
+.uh-s-bespin .splitpanes--horizontal > .splitpanes__splitter { background: #59554f !important !important }
+.uh-s-bespin .splitpanes--vertical > .splitpanes__splitter { border-left: 2px solid #28211c !important }
+.uh-s-bespin .splitpanes--horizontal > .splitpanes__splitter { border-top: 2px solid #28211c !important }
+.uh-s-bespin .uh-activeline-background { background: #404040; }

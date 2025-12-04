@@ -1,0 +1,10 @@
+.uh-s-isotope .uh-background { background: #000000; }
+.uh-s-isotope .uh-color {  color: #e0e0e0; }
+.uh-s-isotope .uh-color-inverted { color: #000000 !important ; }
+.uh-s-isotope .uh-background-inverted { background: #e0e0e0 !important ; }
+.uh-s-isotope .uh-selected-background { background: #404040 !important; }
+.uh-s-isotope .splitpanes--vertical > .splitpanes__splitter { background: #404040 !important !important }
+.uh-s-isotope .splitpanes--horizontal > .splitpanes__splitter { background: #404040 !important !important }
+.uh-s-isotope .splitpanes--vertical > .splitpanes__splitter { border-left: 2px solid #000000 !important }
+.uh-s-isotope .splitpanes--horizontal > .splitpanes__splitter { border-top: 2px solid #000000 !important }
+.uh-s-isotope .uh-activeline-background { background: #202020; }

@@ -1,0 +1,12 @@
+.uh-s-material-palenight .uh-background { background-color: #292D3E; }
+.uh-s-material-palenight .uh-color {  color: #A6ACCD; }
+.uh-s-material-palenight .uh-color-inverted { color: #292D3E !important ; }
+.uh-s-material-palenight .uh-background-inverted { background: #A6ACCD !important ; }
+.uh-s-material-palenight .splitpanes--vertical > .splitpanes__splitter { border-left: 2px solid #292D3E !important }
+.uh-s-material-palenight .splitpanes--horizontal > .splitpanes__splitter { border-top: 2px solid #292D3E !important }
+.uh-s-material-palenight .uh-linenumber {  color: #676E95; }
+.uh-s-material-palenight .uh-selected-background { background: rgba(113, 124, 180, 0.2); }
+.uh-s-material-palenight .splitpanes--vertical > .splitpanes__splitter { background: rgba(113, 124, 180, 0.2) !important }
+.uh-s-material-palenight .splitpanes--horizontal > .splitpanes__splitter { background: rgba(113, 124, 180, 0.2) !important }
+.uh-s-material-palenight .uh-selection-background { background: rgba(128, 203, 196, 0.2); }
+.uh-s-material-palenight .uh-activeline-background { background: rgba(0, 0, 0, 0.5); }

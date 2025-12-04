@@ -1,0 +1,12 @@
+.uh-s-nord .uh-background { background: #2e3440; }
+.uh-s-nord .uh-color {  color: #d8dee9; }
+.uh-s-nord .uh-color-inverted { color: #2e3440 !important ; }
+.uh-s-nord .uh-background-inverted { background: #d8dee9 !important ; }
+.uh-s-nord .uh-selected-background { background: #434c5e; }
+.uh-s-nord .splitpanes--vertical > .splitpanes__splitter { background: #434c5e !important }
+.uh-s-nord .splitpanes--horizontal > .splitpanes__splitter { background: #434c5e !important }
+.uh-s-nord .uh-selection-background { background: #3b4252; }
+.uh-s-nord .splitpanes--vertical > .splitpanes__splitter { border-left: 2px solid #2e3440 !important }
+.uh-s-nord .splitpanes--horizontal > .splitpanes__splitter { border-top: 2px solid #2e3440 !important }
+.uh-s-nord .uh-linenumber {  color: #4c566a; }
+.uh-s-nord .uh-activeline-background { background: #3b4252; }

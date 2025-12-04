@@ -208,7 +208,7 @@ export default {
       return ['refHeading', 'uh-activeline-background'];
     },
     _refFileClasses() {
-      return ['refFile', 'uh-selected-background'];
+      return ['refFile', 'uh-selected-background', /*fallback*/ 'uh-selection-background', 'uh-selected-color'];
     },
   },
   methods: {

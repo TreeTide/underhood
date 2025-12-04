@@ -1,0 +1,12 @@
+.uh-s-material-ocean .uh-background { background-color: #0F111A; }
+.uh-s-material-ocean .uh-color {  color: #8F93A2; }
+.uh-s-material-ocean .uh-color-inverted { color: #0F111A !important ; }
+.uh-s-material-ocean .uh-background-inverted { background: #8F93A2 !important ; }
+.uh-s-material-ocean .splitpanes--vertical > .splitpanes__splitter { border-left: 2px solid #0F111A !important }
+.uh-s-material-ocean .splitpanes--horizontal > .splitpanes__splitter { border-top: 2px solid #0F111A !important }
+.uh-s-material-ocean .uh-linenumber {  color: #464B5D; }
+.uh-s-material-ocean .uh-selected-background { background: rgba(113, 124, 180, 0.2); }
+.uh-s-material-ocean .splitpanes--vertical > .splitpanes__splitter { background: rgba(113, 124, 180, 0.2) !important }
+.uh-s-material-ocean .splitpanes--horizontal > .splitpanes__splitter { background: rgba(113, 124, 180, 0.2) !important }
+.uh-s-material-ocean .uh-selection-background { background: rgba(128, 203, 196, 0.2); }
+.uh-s-material-ocean .uh-activeline-background { background: rgba(0, 0, 0, 0.5); }

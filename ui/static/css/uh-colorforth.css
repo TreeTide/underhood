@@ -1,0 +1,11 @@
+.uh-s-colorforth .uh-background { background: #000000; }
+.uh-s-colorforth .uh-color {  color: #f8f8f8; }
+.uh-s-colorforth .uh-color-inverted { color: #000000 !important ; }
+.uh-s-colorforth .uh-background-inverted { background: #f8f8f8 !important ; }
+.uh-s-colorforth .splitpanes--vertical > .splitpanes__splitter { border-left: 2px solid #0a001f !important }
+.uh-s-colorforth .splitpanes--horizontal > .splitpanes__splitter { border-top: 2px solid #0a001f !important }
+.uh-s-colorforth .uh-linenumber {  color: #bababa; }
+.uh-s-colorforth .uh-selected-background { background: #333d53; }
+.uh-s-colorforth .splitpanes--vertical > .splitpanes__splitter { background: #333d53 !important }
+.uh-s-colorforth .splitpanes--horizontal > .splitpanes__splitter { background: #333d53 !important }
+.uh-s-colorforth .uh-activeline-background { background: #253540; }

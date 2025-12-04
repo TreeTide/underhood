@@ -5,7 +5,7 @@ BEGIN {
   bg_regexp = "background: ([^;]+);";
   bg_col_regexp = "background-color: ([^;]+);";
   /* Note: exclusion to avoid matching background-color. */
-  color_regexp = "[^-]color: ([^;]+);";
+  color_regexp = "\\scolor: ([^;]+);";
 }
 
 function to_css(re, name, idx, pre, post) {
@@ -60,7 +60,7 @@ $0 ~ theme_style" *.CodeMirror-gutters {" {
   splitpanes_to_css(bg_regexp, "horizontal", "border-top: 2px solid ");
 }
 
-$0 ~ ".CodeMirr.r-linenumber" {
+$0 ~ theme_style"\\s*.CodeMirr.r-linenumber" {
   /* wildcard is for typo in darcula */
   to_css(color_regexp, "linenumber");
 }

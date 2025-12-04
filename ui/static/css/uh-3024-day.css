@@ -1,0 +1,13 @@
+.uh-s-3024-day .uh-background { background: #f7f7f7; }
+.uh-s-3024-day .uh-color {  color: #3a3432; }
+.uh-s-3024-day .uh-color-inverted { color: #f7f7f7 !important ; }
+.uh-s-3024-day .uh-background-inverted { background: #3a3432 !important ; }
+.uh-s-3024-day .uh-selected-background { background: #d6d5d4; }
+.uh-s-3024-day .splitpanes--vertical > .splitpanes__splitter { background: #d6d5d4 !important }
+.uh-s-3024-day .splitpanes--horizontal > .splitpanes__splitter { background: #d6d5d4 !important }
+.uh-s-3024-day .uh-selection-background { background: #d6d5d4; }
+.uh-s-3024-day .uh-selection-background { background: #d9d9d9; }
+.uh-s-3024-day .splitpanes--vertical > .splitpanes__splitter { border-left: 2px solid #f7f7f7 !important }
+.uh-s-3024-day .splitpanes--horizontal > .splitpanes__splitter { border-top: 2px solid #f7f7f7 !important }
+.uh-s-3024-day .uh-linenumber {  color: #807d7c; }
+.uh-s-3024-day .uh-activeline-background { background: #e8f2ff; }

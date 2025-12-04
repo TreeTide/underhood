@@ -1,0 +1,12 @@
+.uh-s-tomorrow-night-eighties .uh-background { background: #000000; }
+.uh-s-tomorrow-night-eighties .uh-color {  color: #CCCCCC; }
+.uh-s-tomorrow-night-eighties .uh-color-inverted { color: #000000 !important ; }
+.uh-s-tomorrow-night-eighties .uh-background-inverted { background: #CCCCCC !important ; }
+.uh-s-tomorrow-night-eighties .uh-selected-background { background: #2D2D2D; }
+.uh-s-tomorrow-night-eighties .splitpanes--vertical > .splitpanes__splitter { background: #2D2D2D !important }
+.uh-s-tomorrow-night-eighties .splitpanes--horizontal > .splitpanes__splitter { background: #2D2D2D !important }
+.uh-s-tomorrow-night-eighties .uh-selection-background { background: rgba(45, 45, 45, 0.99); }
+.uh-s-tomorrow-night-eighties .splitpanes--vertical > .splitpanes__splitter { border-left: 2px solid #000000 !important }
+.uh-s-tomorrow-night-eighties .splitpanes--horizontal > .splitpanes__splitter { border-top: 2px solid #000000 !important }
+.uh-s-tomorrow-night-eighties .uh-linenumber {  color: #515151; }
+.uh-s-tomorrow-night-eighties .uh-activeline-background { background: #343600; }

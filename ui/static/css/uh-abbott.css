@@ -1,0 +1,10 @@
+.uh-s-abbott .uh-background { background: #231c14 /* bistre */; }
+.uh-s-abbott .uh-color {  color: #d8ff84 /* pastel_chartreuse */; }
+.uh-s-abbott .uh-color-inverted { color: #231c14 /* bistre */ !important ; }
+.uh-s-abbott .uh-background-inverted { background: #d8ff84 /* pastel_chartreuse */ !important ; }
+.uh-s-abbott .splitpanes--vertical > .splitpanes__splitter { border-left: 2px solid #231c14 /* bistre */ !important }
+.uh-s-abbott .splitpanes--horizontal > .splitpanes__splitter { border-top: 2px solid #231c14 /* bistre */ !important }
+.uh-s-abbott .uh-linenumber {  color: #fbec5d /* lemon_meringue */; }
+.uh-s-abbott .uh-selection-background { background: #273900 /* dark_olive */; }
+.uh-s-abbott .uh-activeline-background { background: #3c3022 /* chocolate */; }
+.uh-s-abbott .uh-selected-background { background: #273900 /* dark_olive */; }

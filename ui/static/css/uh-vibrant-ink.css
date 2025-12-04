@@ -1,0 +1,12 @@
+.uh-s-vibrant-ink .uh-background { background: black; }
+.uh-s-vibrant-ink .uh-color {  color: white; }
+.uh-s-vibrant-ink .uh-color-inverted { color: black !important ; }
+.uh-s-vibrant-ink .uh-background-inverted { background: white !important ; }
+.uh-s-vibrant-ink .uh-selected-background { background: #35493c; }
+.uh-s-vibrant-ink .splitpanes--vertical > .splitpanes__splitter { background: #35493c !important }
+.uh-s-vibrant-ink .splitpanes--horizontal > .splitpanes__splitter { background: #35493c !important }
+.uh-s-vibrant-ink .uh-selection-background { background: rgba(53, 73, 60, 0.99); }
+.uh-s-vibrant-ink .splitpanes--vertical > .splitpanes__splitter { border-left: 2px solid #002240 !important }
+.uh-s-vibrant-ink .splitpanes--horizontal > .splitpanes__splitter { border-top: 2px solid #002240 !important }
+.uh-s-vibrant-ink .uh-linenumber {  color: #d0d0d0; }
+.uh-s-vibrant-ink .uh-activeline-background { background: #27282E; }

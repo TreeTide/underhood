@@ -1,7 +1,7 @@
 <template>
   <div class="tree">
     <div
-      :class="{dir: isDir, label: true, 'uh-selected-background': hover }"
+      :class="{dir: isDir, label: true, 'uh-selected-background': hover, 'uh-selection-background': hover }"
       @click="onClick"
       @mouseover="onHover"
       @mouseout="onHoverDone">

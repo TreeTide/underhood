@@ -1,0 +1,12 @@
+.uh-s-ayu-mirage .uh-background { background: #1f2430; }
+.uh-s-ayu-mirage .uh-color {  color: #cbccc6; }
+.uh-s-ayu-mirage .uh-color-inverted { color: #1f2430 !important ; }
+.uh-s-ayu-mirage .uh-background-inverted { background: #cbccc6 !important ; }
+.uh-s-ayu-mirage .uh-selected-background { background: #34455a; }
+.uh-s-ayu-mirage .splitpanes--vertical > .splitpanes__splitter { background: #34455a !important }
+.uh-s-ayu-mirage .splitpanes--horizontal > .splitpanes__splitter { background: #34455a !important }
+.uh-s-ayu-mirage .uh-selection-background { background: #34455a; }
+.uh-s-ayu-mirage .splitpanes--vertical > .splitpanes__splitter { border-left: 2px solid #1f2430 !important }
+.uh-s-ayu-mirage .splitpanes--horizontal > .splitpanes__splitter { border-top: 2px solid #1f2430 !important }
+.uh-s-ayu-mirage .uh-linenumber {  color: rgba(61, 66, 77, 99); }
+.uh-s-ayu-mirage .uh-activeline-background { background: #191e2a; }

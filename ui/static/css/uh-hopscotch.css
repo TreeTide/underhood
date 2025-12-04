@@ -1,0 +1,10 @@
+.uh-s-hopscotch .uh-background { background: #322931; }
+.uh-s-hopscotch .uh-color {  color: #d5d3d5; }
+.uh-s-hopscotch .uh-color-inverted { color: #322931 !important ; }
+.uh-s-hopscotch .uh-background-inverted { background: #d5d3d5 !important ; }
+.uh-s-hopscotch .uh-selected-background { background: #433b42 !important; }
+.uh-s-hopscotch .splitpanes--vertical > .splitpanes__splitter { background: #433b42 !important !important }
+.uh-s-hopscotch .splitpanes--horizontal > .splitpanes__splitter { background: #433b42 !important !important }
+.uh-s-hopscotch .splitpanes--vertical > .splitpanes__splitter { border-left: 2px solid #322931 !important }
+.uh-s-hopscotch .splitpanes--horizontal > .splitpanes__splitter { border-top: 2px solid #322931 !important }
+.uh-s-hopscotch .uh-activeline-background { background: #302020; }
