@@ -17,8 +17,8 @@ import (
 	"github.com/TreeTide/underhood/zoekt-underhood/web"
 	//"github.com/sourcegraph/zoekt"
 	//"github.com/sourcegraph/zoekt/build"
-	"github.com/sourcegraph/zoekt/shards"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/sourcegraph/zoekt/shards"
 	"go.uber.org/automaxprocs/maxprocs"
 	"golang.org/x/net/trace"
 )

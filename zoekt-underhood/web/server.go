@@ -7,6 +7,7 @@ import (
 	//"html"
 	"log"
 	"net/http"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -282,8 +283,8 @@ func (s *Server) serveSourceErr(w http.ResponseWriter, r *http.Request) error {
 	// Note the [repo filter].
 	rq := "r:" + repo + " f:^" + path + "$"
 	if branch != "" {
-		// TODO(repo-filter,branch): the zoekt branch filter is substring-based
-		//   and doesn't support regexp (plumb through or work around?).
+		// NOTE(repo-filter,branch): the zoekt branch filter is substring-based
+		//   and doesn't support regexp. So we filter later as well.
 		rq += " b:" + branch
 	}
 	log.Printf("query: %v", rq)
@@ -299,13 +300,21 @@ func (s *Server) serveSourceErr(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	for _, f := range result.Files {
+		// See NOTE(repo-filter,branch) above.
 		if f.Repository != repo {
-			// See [repo filter].
 			continue
 		}
-		w.Header().Set("Content-Type", "text/plain; charset=UTF-8")
-		w.WriteHeader(http.StatusOK)
-		w.Write(f.Content)
+		if branch != "" && !slices.Contains(f.Branches, branch) {
+			continue
+		}
+		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+		if err = json.NewEncoder(w).Encode(SourceResponse{
+			Content:  string(f.Content),
+			Language: f.Language,
+		}); err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return err
+		}
 		return nil
 	}
 	return fmt.Errorf("Requested file not in response. Query: %v", rq)
@@ -324,6 +333,11 @@ func (s *Server) serveDecors(w http.ResponseWriter, r *http.Request) {
 	}); err != nil {
 		http.Error(w, err.Error(), http.StatusTeapot)
 	}
+}
+
+type SourceResponse struct {
+	Content  string `json:"content"`
+	Language string `json:"language"`
 }
 
 // Mirrors Underhood's XRefReply (though the two converged away from original
@@ -370,10 +384,10 @@ type UhFileSites struct {
 }
 
 type UhDisplayedFile struct {
-	FileTicket  string `json:"dfFileTicket"`
-	DisplayName string `json:"dfDisplayName"`
-	Branches []string `json:"dfBranches"`
-	Language string `json:"dfLanguage"`
+	FileTicket  string   `json:"dfFileTicket"`
+	DisplayName string   `json:"dfDisplayName"`
+	Branches    []string `json:"dfBranches"`
+	Language    string   `json:"dfLanguage"`
 }
 
 type UhSnippet struct {
@@ -621,8 +635,8 @@ func (s *Server) appendSearches(rq string, ctx context.Context, manyFileSites *[
 		inFile := UhDisplayedFile{
 			FileTicket:  ticket,
 			DisplayName: ticket,
-			Branches: f.Branches,
-			Language: f.Language,
+			Branches:    f.Branches,
+			Language:    f.Language,
 		}
 		snippets := []UhSnippet{}
 		snippetsHash := sha1.New()

@@ -43,7 +43,6 @@
             :ext-loading="refsLoading"
             :ref-data="refData"
             :scroll-on-click="collapseRefsOnNextRefClick"
-            :highlight-mode="cmOptions.mode"
             :highlight-style="cmOptions.theme" />
         <div :class="'uh-background refs-filler'" />
       </pane>
@@ -61,12 +60,14 @@ import 'codemirror/lib/codemirror.css';
 // Language syntax modules (TODO(language-support) add more)
 // Don't forget to configure in backendProgLangToCodeMirror too.
 import 'codemirror/mode/clike/clike.js';
-import 'codemirror/mode/python/python.js';
 import 'codemirror/mode/go/go.js';
 import 'codemirror/mode/haskell/haskell.js';
 import 'codemirror/mode/htmlmixed/htmlmixed.js';
-import 'codemirror/mode/protobuf/protobuf.js';
 import 'codemirror/mode/javascript/javascript.js';
+import 'codemirror/mode/markdown/markdown.js';
+import 'codemirror/mode/protobuf/protobuf.js';
+import 'codemirror/mode/python/python.js';
+import 'codemirror/mode/yaml/yaml.js';
 // Functionality
 import 'codemirror/keymap/sublime.js';
 import 'codemirror/keymap/emacs.js';
@@ -214,6 +215,7 @@ import { Splitpanes, Pane } from 'splitpanes'
 import 'splitpanes/dist/splitpanes.css'
 
 import RH from './rest_helpers.js'
+import Proglang from './proglang.js';
 import FileTree from './FileTree.vue'
 import { scrollToLastHilit } from './FileTree.vue'
 import References from './References.vue'
@@ -386,26 +388,17 @@ export default {
     return {
       nodes: null,
       code: '// Please wait for filenav to load on the left and select file.',
+      syntaxMode: 'clike',
+      //
+      theme: 'zenburn',
+      keyMap: 'sublime',
+      //
       refTicket: null,
       refData: null,
       refsLoading: false,
       collapseRefsOnNextRefClick: false,
       renderedTicket: null,
       searchBarText: "",
-      cmOptions: {
-        mode: 'text/x-go',  // TODO(language-support): dynamic
-        undoDepth: 0,
-        lineNumbers: true,
-        line: true,
-        theme: 'zenburn',
-        // NOTE(large-document): with Infinitiy, full-page-search works, but rendering and
-        //   adding xrefs to big docs gets slow. With the default of 10, we
-        //   need the search extension (or custom search) to make search work.
-        viewportMargin: 10, // The default.
-        readOnly: true,
-        //cursorBlinkRate: -1,
-        keyMap: 'sublime',
-      },
       lastMirrorMouseEvent: null,
       vPaneSize: 75,
       // Saves vPaneSize when using top-bar search, to restore later.
@@ -726,10 +719,10 @@ export default {
         .catch(err => console.log(err));
     },
     onTheme (theme) {
-      this.cmOptions.theme = theme;
+      this.theme = theme;
     },
     onKeyMap (km) {
-      this.cmOptions.keyMap = km;
+      this.keyMap = km;
     },
     onRefClick (routeParams) {
       this.navigateToFileLineIfNeeded(routeParams);
@@ -811,10 +804,6 @@ export default {
       }
       console.log('load-source-start');
       axios.get('/api/source', {
-        // See https://github.com/axios/axios/issues/907, argh.
-        //transformResponse: undefined,
-        // And https://github.com/axios/axios/issues/2791, aarggh.
-        transformResponse: [(data) => data],
         params: { ticket }
       })
         .then(response => {
@@ -822,7 +811,8 @@ export default {
           console.log('loaded-source');
           let start = Date.now();
           resetXRefState(this.codemirror);
-          this.code = response.data;
+          this.code = response.data.content;
+          this.syntaxMode = Proglang.backendProgLangToCodeMirror(response.data.language);
           //
           if (mbLineToFocus) {
             console.log('line-to-focus', mbLineToFocus);
@@ -916,6 +906,22 @@ export default {
     },
   },
   computed: {
+    cmOptions () {
+      return {
+        mode: this.syntaxMode,
+        undoDepth: 0,
+        lineNumbers: true,
+        line: true,
+        theme: this.theme,
+        // NOTE(large-document): with Infinitiy, full-page-search works, but rendering and
+        //   adding xrefs to big docs gets slow. With the default of 10, we
+        //   need the search extension (or custom search) to make search work.
+        viewportMargin: 10, // The default.
+        readOnly: true,
+        //cursorBlinkRate: -1,
+        keyMap: this.keyMap,
+      };
+    },
     mkNavBus () {
       return {
         onClick: this.onNavClick,

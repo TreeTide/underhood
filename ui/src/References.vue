@@ -128,6 +128,7 @@ import 'codemirror/mode/go/go.js';
 
 import FileName from './FileName.vue';
 import Ticket from './ticket.js';
+import Proglang from './proglang.js';
 
 // TODO un-singleton
 let state = {
@@ -136,29 +137,6 @@ let state = {
 
 function _lineColString(p) {
   return p.line + ':' + p.ch;
-}
-
-function backendProgLangToCodeMirror(pl) {
-  const lng = pl.toLowerCase();
-  switch (lng) {
-    // Non-directly mappable cases here
-    case "c":
-      return "text/x-csrc";
-    case "c++":
-      return "text/x-c++src";
-    case "javascript":
-      return "text/javascript";
-    case "json":
-      return "application/json";
-    case "html":
-      return "text/html";
-    case "protocol buffer":
-      return "text/x-protobuf";
-    case "typescript":
-      return "application/typescript";
-    default:
-      return lng;
-  }
 }
 
 export default {
@@ -170,7 +148,6 @@ export default {
     // TODO: eventually move ticket xref fetch logic outside, and pass that in
     //   as refData as well.
     refData: Object,
-    highlightMode: String,
     highlightStyle: String,
     extLoading: Boolean,
     scrollOnClick: Boolean,
@@ -365,11 +342,8 @@ export default {
       // NOTE(syntax-highlight): a file might have subranges using a different
       // language. We don't support that for now, though could ship via snippet
       // eventually.
-      const cmSyntaxMode = backendProgLangToCodeMirror(progLang);
+      const cmSyntaxMode = Proglang.backendProgLangToCodeMirror(progLang);
       const mode = CodeMirror.getMode(CodeMirror.defaults, cmSyntaxMode);
-      console.log('go', CodeMirror.getMode(CodeMirror.defaults, 'go'));
-      console.log('javascript', CodeMirror.getMode(CodeMirror.defaults, 'javascript'));
-      console.log('Using mode: ', cmSyntaxMode, mode);
       // TODO(syntax-highlight): wouldn't it be better to run a single highlight,
       // and work out what to emphasize after? Otherwise highlight can be broken,
       // for example on a split string.
