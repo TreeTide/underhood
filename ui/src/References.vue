@@ -458,7 +458,7 @@ export default {
 
 .refPanelHighlight {
   font-weight: bold;
-  text-decoration: underline dotted;
+  text-decoration: underline dotted 2px;
 }
 .clickableRef {
   cursor: pointer;
