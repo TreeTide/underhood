@@ -29,6 +29,7 @@
     "codemirror": "^5.65.20",
     "color": "^3.2.1",
     "devicon": "github:devicons/devicon",
+    "he": "^1.2.0",
     "jss": "^10.0.0-alpha.3",
     "jss-preset-default": "^10.10.0",
     "lodash": "^4.17.21",

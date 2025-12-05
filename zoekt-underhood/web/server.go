@@ -663,17 +663,18 @@ func (s *Server) appendSearches(rq string, ctx context.Context, manyFileSites *[
 						Line: lineNum,
 						// TODO: Zoekt supplies range in bytes, while we need chars.
 						//       Would need to convert based on observing line content.
+						// Note: the end is not really used now.
 						Ch: l.LineEnd - l.LineStart,
 					},
 				},
 				OccurrenceSpan: CmRange{
 					From: CmPoint{
 						Line: lineNum,
-						Ch:   firstFrag.LineOffset, // TODO convert from bytes to chars
+						Ch:   hackyConv(clippedLine, firstFrag.LineOffset), // TODO convert better
 					},
 					To: CmPoint{
 						Line: lineNum,
-						Ch:   firstFrag.LineOffset + firstFrag.MatchLength, // TODO convert
+						Ch:   hackyConv(clippedLine, firstFrag.LineOffset + firstFrag.MatchLength), // TODO convert better
 					},
 				},
 			}
@@ -687,6 +688,24 @@ func (s *Server) appendSearches(rq string, ctx context.Context, manyFileSites *[
 		})
 	}
 	return nil
+}
+
+// hackyConv returns the codepoint(aka rune)-offset for the given byte offset
+// in the given (UTF-8) string. It is hacky for two reasons. The minor one is
+// performance, we reiterate etc. The other one is that these are the UTF-8
+// codepoint offsets on a potentially unnormalized string. While the frontend
+// in Javascript uses UTF-16, so there can be problems with non-BMP codepoints?
+// Not exactly sure, would need to test. For now this covers the trivial
+// examples.
+func hackyConv(s string, offs int) int {
+	i := 0
+	for totalBytes, _ := range s {
+		if totalBytes >= offs {
+			return i
+		}
+		i += 1
+	}
+	return i
 }
 
 // ticket breaks down a unique artifact identifier to its parts.

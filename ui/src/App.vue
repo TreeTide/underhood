@@ -463,7 +463,7 @@ export default {
     onCmReady (cm) {
       cm.on('mousedown', this.onCmMouseDown);
       cm.on('touchstart', this.onCmTouchStart);
-      //cm.on('keydown', this.onCmKeyDown);
+      cm.on('keydown', this.onCmKeyDown);
       const thiz = this;
       cm.getWrapperElement().addEventListener('mousemove', function(e) {
         thiz.lastMirrorMouseEvent = e;
@@ -519,8 +519,10 @@ export default {
     },
     onCmKeyDown (cm, e) {
       //console.log('key-down', e);
-    
-      // TODO configurable keys.
+
+      // TODO(keyMap): these can conflict with the keyMap, especially in vim
+      //  mode. 
+      // TODO(keyMap): configurable keys.
       let invertCase = e.shiftKey;
       let querySource = "";
       let mode = "";

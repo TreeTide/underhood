@@ -120,6 +120,7 @@
 
 <script>
 import axios from 'axios';
+import he from 'he';
 
 import CodeMirror from 'codemirror';
 import 'codemirror/lib/codemirror.css';
@@ -344,15 +345,48 @@ export default {
       // eventually.
       const cmSyntaxMode = Proglang.backendProgLangToCodeMirror(progLang);
       const mode = CodeMirror.getMode(CodeMirror.defaults, cmSyntaxMode);
-      // TODO(syntax-highlight): wouldn't it be better to run a single highlight,
-      // and work out what to emphasize after? Otherwise highlight can be broken,
-      // for example on a split string.
+      // NOTE(syntax-highlight): we highlight first, and emphasize after, so
+      // the syntax won't break.
+      const hilit = this._highlight(mode, t);
+      // hilit is a series of spans with class cm-<something>. Let's find which
+      // parts we need to highlight.
+      const hilitAfterCloses = hilit.split('>');
+      const emphLength = subEnd - subStart;
+      let i = 0;
+      let resParts = [];
+      console.log('xyzz', t, hilit, hilitAfterCloses);
+      for (const afterClose of hilitAfterCloses) {
+        console.log(subStart, subEnd, i, afterClose);
+        if (i >= subEnd) {
+          resParts.push(afterClose);
+          console.log('skip');
+          // Ok not to maintain i anymore, we don't need it.
+        } else {
+          const nextOpenPos = afterClose.indexOf('<');
+          const init = he.decode(afterClose.substring(0, nextOpenPos));
+          const rest = afterClose.slice(nextOpenPos);
+          const ilen = init.length;
+          const untilStart = Math.max(0, subStart - i);
+          const untilEnd = Math.max(0, subEnd - i);
+          if (untilStart < ilen) {
+            const pre = init.substr(0, untilStart);
+            const mid = init.slice(untilStart, untilEnd);
+            const post = init.slice(untilEnd);
+            console.log('ok', pre, mid, post);
+            resParts.push(he.encode(pre) 
+              + "<span class='refPanelHighlight'>" + he.encode(mid) + "</span>"
+              + he.encode(post)
+              + rest);
+          } else {
+            console.log('not');
+            resParts.push(afterClose);
+          }
+          i += ilen;
+        }
+      }
+      const hilitEmph = resParts.join('>');
       return `<span class="cm-s-${mode.name}">` +
-        "&nbsp;".repeat(pad2) +
-        this._highlight(mode, t.substring(0, subStart)) +
-        "<span class='refPanelHighlight'>" + this._highlight(mode, t.substring(subStart, subEnd)) + "</span>" +
-        this._highlight(mode, t.substring(subEnd)) +
-        "</span>";
+        "&nbsp;".repeat(pad2) + hilitEmph + "</span>";
     },
     _fetchReferences(ticket) {
       if (state.canceller) {
