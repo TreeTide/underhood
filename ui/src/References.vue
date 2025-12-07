@@ -6,7 +6,7 @@
     <div v-else>
       <div v-if="ticket || refData">
         <div v-if="!loading">
-          <!-- NOTE(kythe-to-zoekt): everything except References is browen now -->
+          <!-- NOTE(kythe-to-zoekt): everything except References is broken now -->
           <div :class="_refHeadingClasses" v-if="_exists(declarations)">Declarations</div>
           <div v-for="ght in groupedDeclarations">
             <div>
@@ -78,16 +78,37 @@
           </div>
           <div v-for="ght in groupedRefs">
             <div>
-              <div :class="_refFileClasses">
-                <FileName
-                  :file-path="ght.head.sContainingFile.dfDisplayName"
-                  :branches="ght.head.sContainingFile.dfBranches"
-                  class="clickableRef"
-                  @file-click="(ev, br) => onClick(ev, ght.head, ght.head.sSnippets[0], br)" />
+              <!-- Setting background so themes that have transparent activeline also get a fix backdrop.
+                   Not sure this is needed.
+              -->
+              <div class="refFileWrapper uh-background">
+                <div class="refFile uh-selected-background uh-selection-background uh-selected-color">
+                  <FileName
+                    :file-path="ght.head.sContainingFile.dfDisplayName"
+                    :branches="ght.head.sContainingFile.dfBranches"
+                    class="clickableRef"
+                    @file-click="(ev, br) => onClick(ev, ght.head, ght.head.sSnippets[0], br)" />
+                </div>
               </div>
-              <div v-for="refInfo in capIfNeeded(ght.head.sSnippets)">
-                <div v-for="ref in refInfo.values">
-                  <div class="clickableRef" @click="onClick($event, ght.head, ref)"><span :class="_refLineClasses">{{_refVisualLine2(ref)}}</span><span v-html="_formatRefSnippet2(ref, ght.head.sContainingFile.dfLanguage)" /></div>
+              <div x-note-single v-for="refInfo in capIfNeeded(ght.head.sSnippets)">
+                <div class="refSnippet" v-for="ref in refInfo.values">
+                  <div class="contextLines linesBefore" v-for="l in ref.linesBefore">
+                    <div
+                      ><span :class="_refLineClasses">{{_refVisualLine2(ref)}}</span
+                      ><span class="lineContent" v-html="_formatLine(l, ght.head.sContainingFile.dfLanguage)"></span
+                    ></div>
+                  </div>
+                  <div class="clickableRef" @click="onClick($event, ght.head, ref)"
+                    ><span :class="_refLineClasses">{{_refVisualLine2(ref)}}</span
+                    ><span v-html="_formatRefSnippet2(ref, ght.head.sContainingFile.dfLanguage)" 
+                  /></div>
+                  <div class="contextLines linesAfter" v-for="l in ref.linesAfter">
+                    <div
+                      ><span :class="_refLineClasses">{{_refVisualLine2(ref)}}</span
+                      ><span class="lineContent" v-html="_formatLine(l, ght.head.sContainingFile.dfLanguage)"></span
+                    ></div>
+                  </div>
+
                 </div>
                 <div v-if="refInfo.notShown > 0" class="lineSkips">
                   ... {{ refInfo.notShown }} lines omitted ...
@@ -208,13 +229,10 @@ export default {
     _refHeadingClasses() {
       return ['refHeading', 'uh-activeline-background'];
     },
-    _refFileClasses() {
-      return ['refFile', 'uh-selected-background', /*fallback*/ 'uh-selection-background', 'uh-selected-color'];
-    },
   },
   methods: {
     capIfNeeded (snips) {
-      const lineCap = 500
+      const lineCap = 500  // TODO(configuration)
       if (this.refLineCount > lineCap) {
         const cap = Math.max(2, Math.floor(lineCap / this.refFileCount));
         return [{
@@ -318,6 +336,28 @@ export default {
     },
     _refVisualLine2(r) {
       return r.snippetOccurrenceSpan.from.line + 1;
+    },
+    _formatLine(t, progLang) {
+      // TODO(cleanup): lot of dups with below
+      const trimmed = _.trimStart(t);
+      const pad = t.length - trimmed.length;
+      const begin = t.substring(0, pad);
+      let pad2 = 0;
+      for (let i = 0; i < begin.length; i++) {
+        switch (begin[i]) {
+          case '\t':
+            pad2 += 4;  // TODO config?
+            break;
+          default:
+            pad2 += 1;
+            break;
+        }
+      }
+      const cmSyntaxMode = Proglang.backendProgLangToCodeMirror(progLang);
+      const mode = CodeMirror.getMode(CodeMirror.defaults, cmSyntaxMode);
+      const hilit = this._highlight(mode, t);
+      return `<span class="cm-s-${mode.name}">` +
+        "&nbsp;".repeat(pad2) + hilit + "</span>";
     },
     _formatRefSnippet2(r, progLang) {
       // TODO only if single-line span.. or preprocess this on server-side.
@@ -466,6 +506,21 @@ export default {
 .clickableRef:hover {
   text-decoration: underline;
 }
+
+.refSnippet {
+  margin-bottom: 1px;
+  padding-bottom: 1px;
+  border-bottom: dotted 2px grey;
+}
+.refSnippet:last-child {
+  border-bottom: 0px;
+}
+.contextLines {
+  /*display: none;*/
+  /*font-size: smaller;*/
+  filter: contrast(0.1);
+}
+
 .refLine {
 }
 .refLine::after {
@@ -477,10 +532,14 @@ export default {
   font-weight: bold;
   margin-bottom: 2px;
 }
-.refFile {
+.refFileWrapper {
+  z-index: 100;  /* otherwise contrast-filtered lines in firefox would go above */
   margin-top: 2px;
   margin-bottom: 1px;
-  padding-bottom: 2px;
+  position: sticky;
+  top: 0rem;
+}
+.refFile {
 }
 .callContext {
   margin-top: 2px;

@@ -391,9 +391,11 @@ type UhDisplayedFile struct {
 }
 
 type UhSnippet struct {
-	Text           string  `json:"snippetText"`
-	FullSpan       CmRange `json:"snippetFullSpan"`
-	OccurrenceSpan CmRange `json:"snippetOccurrenceSpan"`
+	Text           string   `json:"snippetText"`
+	FullSpan       CmRange  `json:"snippetFullSpan"`
+	OccurrenceSpan CmRange  `json:"snippetOccurrenceSpan"`
+	LinesBefore    []string `json:"linesBefore"`
+	LinesAfter     []string `json:"linesAfter"`
 }
 
 type CmRange struct {
@@ -590,7 +592,8 @@ func (s *Server) appendSearches(rq string, ctx context.Context, manyFileSites *[
 	}
 
 	sOpts := zoekt.SearchOptions{
-		MaxWallTime: 10 * time.Second,
+		MaxWallTime:     10 * time.Second,
+		NumContextLines: 1,  // TODO(configure,plumb)
 	}
 	sOpts.SetDefaults()
 
@@ -674,9 +677,11 @@ func (s *Server) appendSearches(rq string, ctx context.Context, manyFileSites *[
 					},
 					To: CmPoint{
 						Line: lineNum,
-						Ch:   hackyConv(clippedLine, firstFrag.LineOffset + firstFrag.MatchLength), // TODO convert better
+						Ch:   hackyConv(clippedLine, firstFrag.LineOffset+firstFrag.MatchLength), // TODO convert better
 					},
 				},
+				LinesBefore: strings.Split(string(l.Before), "\n"),
+				LinesAfter:  strings.Split(string(l.After), "\n"),
 			}
 			snippets = append(snippets, snippet)
 		}
