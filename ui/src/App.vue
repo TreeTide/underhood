@@ -393,6 +393,7 @@ export default {
       //
       theme: 'zenburn',
       keyMap: 'sublime',
+      contextLines: 0,
       //
       refTicket: null,
       refData: null,
@@ -611,6 +612,10 @@ export default {
           casing: zoektCase,
           mode: mode,
           file_ticket: this.renderedTicket,
+          options: {
+            // NOTE(config): could differentiate bar-search vs xref-search
+            num_context_lines: this.contextLines,
+          },
         },
         // TODO cancelToken / canceller
       )
@@ -725,6 +730,9 @@ export default {
     },
     onKeyMap (km) {
       this.keyMap = km;
+    },
+    onContextLines (ls) {
+      this.contextLines = ls;
     },
     onRefClick (routeParams) {
       this.navigateToFileLineIfNeeded(routeParams);
@@ -931,10 +939,7 @@ export default {
       }
     },
     mkHeaderBus () {
-      return {
-        onTheme: this.onTheme,
-        onKeyMap: this.onKeyMap,
-      }
+      return this;
     },
     mkRefBus () {
       return {

@@ -423,10 +423,15 @@ func (s *Server) serveSearchXref(w http.ResponseWriter, r *http.Request) {
 }
 
 type SearchXrefRequest struct {
-	Selection  string `json:"selection"`
-	Casing     string `json:"casing"`
-	Mode       string `json:"mode"`
-	FileTicket string `json:"file_ticket"`
+	Selection  string            `json:"selection"`
+	Casing     string            `json:"casing"`
+	Mode       string            `json:"mode"`
+	FileTicket string            `json:"file_ticket"`
+	Options    SearchXrefOptions `json:"options"`
+}
+
+type SearchXrefOptions struct {
+	NumContextLines int `json:"num_context_lines"`
 }
 
 func (s *Server) serveSearchXrefErr(w http.ResponseWriter, r *http.Request) error {
@@ -501,7 +506,7 @@ func (s *Server) serveSearchXrefErr(w http.ResponseWriter, r *http.Request) erro
 		rq = "case:" + casing + " " + moddedSelection
 	}
 
-	if err := s.appendSearches(rq, ctx, &fileSites); err != nil {
+	if err := s.appendSearches(rq, ctx, sxReq.Options, &fileSites); err != nil {
 		return err
 	}
 	// Note: if the [repo filter] was more precise, we could shoot multiple
@@ -602,17 +607,16 @@ func (s *Server) serveSearchXrefErr(w http.ResponseWriter, r *http.Request) erro
 	return nil
 }
 
-func (s *Server) appendSearches(rq string, ctx context.Context, manyFileSites *[]fileSites) error {
+func (s *Server) appendSearches(rq string, ctx context.Context, opts SearchXrefOptions, manyFileSites *[]fileSites) error {
 	log.Printf("query: %v", rq)
 	q, err := query.Parse(rq)
 	if err != nil {
 		return err
 	}
-	numContextLines := 1 // TODO(configure,plumb)
 
 	sOpts := zoekt.SearchOptions{
 		MaxWallTime:     10 * time.Second,
-		NumContextLines: numContextLines,
+		NumContextLines: opts.NumContextLines,
 	}
 	sOpts.SetDefaults()
 

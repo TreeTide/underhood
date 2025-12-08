@@ -4,6 +4,11 @@
       <input id="searchBar" type="text" class="uh-selected-background uh-selection-background uh-color"
         @keyup.enter="onSearchSubmit"/>
       <span>
+        <select id="contextLines" v-model="contextLines" class="uh-background uh-color">
+          <option v-for="option in contextLineOptions" :value="option.value">
+            {{ option.text }}
+          </option>
+        </select>
         <select id="keyMapSelect" v-model="keyMap" class="uh-background uh-color">
           <option>sublime</option>
           <option>vim</option>
@@ -88,6 +93,15 @@ export default {
     return {
       theme: 'zenburn',
       keyMap: 'sublime',
+      //
+      contextLines: 0,
+      contextLineOptions: [
+        { value: 0, text: "0 ctx" },
+        { value: 1, text: "1 ctx" },
+        { value: 2, text: "2 ctx" },
+        { value: 3, text: "3 ctx" },
+        { value: 5, text: "5 ctx" },
+        ],
     }
   },
   methods: {
@@ -102,6 +116,9 @@ export default {
     },
     keyMap (v) {
       this.bus.onKeyMap(v);
+    },
+    contextLines (v) {
+      this.bus.onContextLines(v);
     },
   },
 }
