@@ -91,21 +91,21 @@
                 </div>
               </div>
               <div x-note-single v-for="refInfo in capIfNeeded(ght.head.sSnippets)">
-                <div class="refSnippet" v-for="ref in refInfo.values">
+                <div class="refSnippet" :class='{"continue-group": ref.uiContinueGroup}' v-for="ref in uiProcessSnippets(refInfo.values)">
                   <div class="contextLines linesBefore" v-for="l in ref.linesBefore">
-                    <div
-                      ><span :class="_refLineClasses">{{_refVisualLine2(ref)}}</span
-                      ><span class="lineContent" v-html="_formatLine(l, ght.head.sContainingFile.dfLanguage)"></span
+                    <div class="numberedLine"
+                      ><span :class="_refLineClasses">{{l.num + 1}}</span
+                      ><span class="lineContent" v-html="_formatLine(l.content, ght.head.sContainingFile.dfLanguage)"></span
                     ></div>
                   </div>
-                  <div class="clickableRef" @click="onClick($event, ght.head, ref)"
+                  <div class="numberedLine clickableRef" @click="onClick($event, ght.head, ref)"
                     ><span :class="_refLineClasses">{{_refVisualLine2(ref)}}</span
                     ><span v-html="_formatRefSnippet2(ref, ght.head.sContainingFile.dfLanguage)" 
                   /></div>
                   <div class="contextLines linesAfter" v-for="l in ref.linesAfter">
-                    <div
-                      ><span :class="_refLineClasses">{{_refVisualLine2(ref)}}</span
-                      ><span class="lineContent" v-html="_formatLine(l, ght.head.sContainingFile.dfLanguage)"></span
+                    <div class="numberedLine"
+                      ><span :class="_refLineClasses">{{l.num + 1}}</span
+                      ><span class="lineContent" v-html="_formatLine(l.content, ght.head.sContainingFile.dfLanguage)"></span
                     ></div>
                   </div>
 
@@ -244,6 +244,39 @@ export default {
         values: snips,
         notShown: 0,
       }];
+    },
+    uiProcessSnippets(snips) {
+      let lastGroupSortId = -1;
+      for (let s of snips) {
+        if (s.uiProcessed) continue;  // Could return modified copy instead..
+        s.uiContinueGroup = s.groupSortId == lastGroupSortId;
+        lastGroupSortId = s.groupSortId;
+        // Add line numbers
+        const line = s.snippetOccurrenceSpan.from.line;
+        const numBefores = s.linesBefore.length;
+        let newBefores = [];
+        let i = 0;
+        for (const b of s.linesBefore) {
+          // Omit empty lines to save estate.. could mark somehow on surrounding
+          // line that there was space, if that is a concern.
+          if (b.trim()) {
+            newBefores.push({num: line - numBefores + i, content: b});
+          }
+          ++i;
+        }
+        s.linesBefore = newBefores;
+        let newAfters = [];
+        i = 1;
+        for (const a of s.linesAfter) {
+          if (a.trim()) {
+            newAfters.push({num: line + i, content: a});
+          }
+          ++i;
+        }
+        s.linesAfter = newAfters;
+        s.uiProcessed = true;
+      }
+      return snips;
     },
     siteDisplayFile(kv) {
       const s = kv.v[0];
@@ -394,12 +427,9 @@ export default {
       const emphLength = subEnd - subStart;
       let i = 0;
       let resParts = [];
-      console.log('xyzz', t, hilit, hilitAfterCloses);
       for (const afterClose of hilitAfterCloses) {
-        console.log(subStart, subEnd, i, afterClose);
         if (i >= subEnd) {
           resParts.push(afterClose);
-          console.log('skip');
           // Ok not to maintain i anymore, we don't need it.
         } else {
           const nextOpenPos = afterClose.indexOf('<');
@@ -412,13 +442,11 @@ export default {
             const pre = init.substr(0, untilStart);
             const mid = init.slice(untilStart, untilEnd);
             const post = init.slice(untilEnd);
-            console.log('ok', pre, mid, post);
             resParts.push(he.encode(pre) 
               + "<span class='refPanelHighlight'>" + he.encode(mid) + "</span>"
               + he.encode(post)
               + rest);
           } else {
-            console.log('not');
             resParts.push(afterClose);
           }
           i += ilen;
@@ -510,10 +538,12 @@ export default {
 .refSnippet {
   margin-bottom: 1px;
   padding-bottom: 1px;
-  border-bottom: dotted 2px grey;
+  border-top: dotted 2px grey;
 }
-.refSnippet:last-child {
-  border-bottom: 0px;
+.refSnippet:first-child,
+.refSnippet.continue-group
+{
+  border-top: 0px;
 }
 .contextLines {
   /*display: none;*/
@@ -525,6 +555,10 @@ export default {
 }
 .refLine::after {
   content: '|';  /* TODO(robinp): figure if we can make a nice gutter like CM */
+}
+.numberedLine {
+  /* So overlong lines don't flow over the space where line number is */
+  display: flex;
 }
 .refHeading {
   padding-top: 2px;

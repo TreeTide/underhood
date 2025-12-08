@@ -380,7 +380,11 @@ type fileSites struct {
 type UhFileSites struct {
 	ContainingFile UhDisplayedFile  `json:"sContainingFile"`
 	IsDupOf        *UhDisplayedFile `json:"sDupOfFile"`
-	Snippets       []UhSnippet      `json:"sSnippets"`
+	// NOTE(snippet-sort): the Snippets are sorted by their GroupSortId, and ties
+	// are broken by line number (that is, appearance order).
+	//
+	// Warning: the GroupSortId-s need not be continuous.
+	Snippets []UhSnippet `json:"sSnippets"`
 }
 
 type UhDisplayedFile struct {
@@ -396,6 +400,9 @@ type UhSnippet struct {
 	OccurrenceSpan CmRange  `json:"snippetOccurrenceSpan"`
 	LinesBefore    []string `json:"linesBefore"`
 	LinesAfter     []string `json:"linesAfter"`
+	// NOTE(snippet-sort): When sorting the snippets of a file in different ways,
+	// snippets in the same GroupSortId should be kept together.
+	GroupSortId int `json:"groupSortId"`
 }
 
 type CmRange struct {
@@ -590,14 +597,15 @@ func (s *Server) appendSearches(rq string, ctx context.Context, manyFileSites *[
 	if err != nil {
 		return err
 	}
+	numContextLines := 1 // TODO(configure,plumb)
 
 	sOpts := zoekt.SearchOptions{
 		MaxWallTime:     10 * time.Second,
-		NumContextLines: 1,  // TODO(configure,plumb)
+		NumContextLines: numContextLines,
 	}
 	sOpts.SetDefaults()
 
-	// Number of files to return - fixed for now. TODO: expose as param
+	// Number of files to return - fixed for now. TODO(configure): expose as param
 	num := 500
 
 	// TODO(limits): revise in light of zoekt upstream changes. See for example ShardRepoMaxMatchCount.
@@ -643,6 +651,7 @@ func (s *Server) appendSearches(rq string, ctx context.Context, manyFileSites *[
 		}
 		snippets := []UhSnippet{}
 		snippetsHash := sha1.New()
+		nextGroudSortId := 0
 		for _, l := range f.LineMatches {
 			// For now we only return first fragment match in line for bolding.
 			firstFrag := l.LineFragments[0]
@@ -682,9 +691,41 @@ func (s *Server) appendSearches(rq string, ctx context.Context, manyFileSites *[
 				},
 				LinesBefore: strings.Split(string(l.Before), "\n"),
 				LinesAfter:  strings.Split(string(l.After), "\n"),
+				GroupSortId: nextGroudSortId,
 			}
 			snippets = append(snippets, snippet)
+			nextGroudSortId += 1
 		}
+		// First sort by line num to remove dup context lines and reassign group.
+		// Then restore group sort.
+		sort.Slice(snippets, func(i, j int) bool {
+			return snippets[i].lineNum() < snippets[j].lineNum()
+		})
+		maxLine := -999999
+		for i := range snippets {
+			s := &snippets[i]
+			lineNum := s.lineNum()
+			if i < len(snippets)-1 {
+				// Remove any LinesAfter that matches or runs over the next snippet.
+				aftersToRemove := lineNum + len(s.LinesAfter) - snippets[i+1].lineNum() + 1
+				if aftersToRemove > 0 {
+					k := len(s.LinesAfter) - aftersToRemove
+					s.LinesAfter = s.LinesAfter[:k]
+				}
+			}
+			if i > 0 {
+				// Remove any LinesBefore that was already covered.
+				beforesToRemove := maxLine - (lineNum - len(s.LinesBefore)) + 1
+				if beforesToRemove > 0 {
+					s.LinesBefore = s.LinesBefore[beforesToRemove:]
+					s.GroupSortId = snippets[i-1].GroupSortId
+				}
+			}
+			maxLine = max(maxLine, lineNum+len(s.LinesAfter))
+		}
+		sort.SliceStable(snippets, func(i, j int) bool {
+			return snippets[i].GroupSortId < snippets[j].GroupSortId
+		})
 		*manyFileSites = append(*manyFileSites, fileSites{
 			containingFile: inFile,
 			snippets:       snippets,
@@ -693,6 +734,10 @@ func (s *Server) appendSearches(rq string, ctx context.Context, manyFileSites *[
 		})
 	}
 	return nil
+}
+
+func (s *UhSnippet) lineNum() int {
+	return s.OccurrenceSpan.From.Line
 }
 
 // hackyConv returns the codepoint(aka rune)-offset for the given byte offset
