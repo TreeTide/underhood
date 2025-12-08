@@ -20,6 +20,12 @@ function backendProgLangToCodeMirror(pl) {
       return "text/x-python";
     case "typescript":
       return "application/typescript";
+    case "vue":
+      // TODO(language-support,vue): for snippet highlight to work, would need
+      // to pseudo-wrap (or otherwise influence codemirror parser state) with
+      // the style/template/script subsection. And that would need to be
+      // retrieved or inferred too.
+      return "text/x-vue";
     case "yaml":
       return "text/x-yaml";
     default:

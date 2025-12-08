@@ -67,6 +67,7 @@ import 'codemirror/mode/javascript/javascript.js';
 import 'codemirror/mode/markdown/markdown.js';
 import 'codemirror/mode/protobuf/protobuf.js';
 import 'codemirror/mode/python/python.js';
+import 'codemirror/mode/vue/vue.js';
 import 'codemirror/mode/yaml/yaml.js';
 // Functionality
 import 'codemirror/keymap/sublime.js';
