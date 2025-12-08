@@ -607,6 +607,11 @@ export default {
       this.refData = null;
       this.refsLoading = true;  // TODO counterize
 
+      if (this.canceller) {
+        this.canceller.cancel();
+      }
+      this.canceller = axios.CancelToken.source();
+
       axios.post('/api/search-xref', {
           selection: toSearch,
           casing: zoektCase,
@@ -617,8 +622,8 @@ export default {
             num_context_lines: this.contextLines,
           },
         },
-        // TODO cancelToken / canceller
-      )
+        { cancelToken: this.canceller.token,
+        })
         .then(response => {
           console.log('updating refData')
           this.refData = {
@@ -633,10 +638,10 @@ export default {
         .catch(err => {
           if (!axios.isCancel(err)) {
             console.log(err);
-          }
+          } else { console.log('was cancelled');}
         }).then(() => {
           this.refsLoading = false;
-          // TODO remove canceller
+          this.canceller = null;
         });
     },
     onCmTouchStart (e) {
@@ -974,6 +979,7 @@ export default {
     });
   },
   created () {
+    this.canceller = null;
     axios.get('/api/filetree')
       .then(response => {
         this.nodes = RH.fileTreeToNav(response.data);
