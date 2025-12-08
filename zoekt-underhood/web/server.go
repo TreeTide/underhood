@@ -4,6 +4,7 @@ import (
 	"crypto/sha1"
 	"encoding/json"
 	"fmt"
+	"io"
 	//"html"
 	"log"
 	"net/http"
@@ -41,7 +42,7 @@ func NewMux(s *Server) (*http.ServeMux, error) {
 	mux.HandleFunc("/api/filetree", s.serveFileTree)
 	mux.HandleFunc("/api/source", s.serveSource)
 	mux.HandleFunc("/api/decor", s.serveDecors)
-	mux.HandleFunc("/api/search-xref", s.serveSearchXref)
+	mux.HandleFunc("POST /api/search-xref", s.serveSearchXref)
 
 	return mux, nil
 }
@@ -421,6 +422,13 @@ func (s *Server) serveSearchXref(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+type SearchXrefRequest struct {
+	Selection  string `json:"selection"`
+	Casing     string `json:"casing"`
+	Mode       string `json:"mode"`
+	FileTicket string `json:"file_ticket"`
+}
+
 func (s *Server) serveSearchXrefErr(w http.ResponseWriter, r *http.Request) error {
 	// Notes: Sources are assumed to be UTF-8 (that's what the UI expects).
 	// If that wouldn't stand, either repos would need to be converted to UTF-8
@@ -434,40 +442,43 @@ func (s *Server) serveSearchXrefErr(w http.ResponseWriter, r *http.Request) erro
 	// be done, but in the mean time, correct line fragment spans are only
 	// returned for plain-text code.
 	log.Printf("request: %v", r.URL)
-	selections, ok := r.URL.Query()["selection"]
-	if !ok || len(selections) > 1 {
-		return fmt.Errorf("expected selection parameter")
-	}
-	selection := selections[0]
 
-	casings, ok := r.URL.Query()["casing"]
+	var sxReq SearchXrefRequest
+	body, _ := io.ReadAll(r.Body)
+	json.Unmarshal(body, &sxReq)
+
+	selection := sxReq.Selection
+	if len(selection) == 0 {
+		return fmt.Errorf("selection was empty")
+	}
+
 	casing := "auto"
-	if ok {
-		c := casings[0]
+	{
+		c := sxReq.Casing
 		if c == "yes" || c == "no" || c == "auto" {
 			casing = c
+		} else {
+			return fmt.Errorf("invalid casing received")
 		}
 	}
 
-	modes, ok := r.URL.Query()["mode"]
 	mode := "Lax"
-	if ok {
-		m := modes[0]
+	{
+		m := sxReq.Mode
 		if m == "Lax" || m == "Boundary" || m == "Raw" {
 			mode = m
+		} else {
+			return fmt.Errorf("invalid mode received")
 		}
 	}
 
-	tickets, ok := r.URL.Query()["ticket"]
-	if !ok {
-		// Make up a dummy ticket, in case one was not supplied.
-		tickets = []string{"nosuchrepo:nosuchfile"}
+	// Make up a dummy ticket, in case one was not supplied.
+	ticket := "nosuchrepo:nosuchfile"
+	if len(sxReq.FileTicket) > 0 {
+		ticket = sxReq.FileTicket
 	}
-	if len(tickets) > 1 {
-		return fmt.Errorf("expected single ticket parameter")
-	}
-	ticket := tickets[0]
-	// TODO(branch): codepath doesn't take ticket.branch into account.
+
+	// TODO(branch): codepath doesn't take ticket's branch into account.
 	// Might do once the repo-filter was reworked.
 	queryTicket, err := parseTicket(ticket)
 	if err != nil {

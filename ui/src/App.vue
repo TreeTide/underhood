@@ -605,15 +605,14 @@ export default {
       this.refData = null;
       this.refsLoading = true;  // TODO counterize
 
-      axios.get('/api/search-xref', {
-        params: {
+      axios.post('/api/search-xref', {
           selection: toSearch,
           casing: zoektCase,
           mode: mode,
-          ticket: this.renderedTicket,
+          file_ticket: this.renderedTicket,
         },
         // TODO cancelToken / canceller
-      })
+      )
         .then(response => {
           console.log('updating refData')
           this.refData = {
