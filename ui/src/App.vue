@@ -579,6 +579,9 @@ export default {
       default:
         throw ('Unknown querySource: ' + querySource)
       }
+      // We don't trim q, in case it contains some escaped regex with space,
+      // but we won't trigger search for completely empty query.
+      if (!q.trim()) return;
 
       if (mode != "Lax" && mode != "Boundary" && mode != "Raw") {
         throw ('Unknown mode: ' + mode)
