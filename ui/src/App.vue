@@ -1,7 +1,7 @@
 <template>
   <div :class="_appClasses">
     <!-- TODO(robinp): better automated sizing between header and rest -->
-    <Header id="header" :current-ticket="renderedTicket" :bus="mkHeaderBus"
+    <Header ref="header" id="header" :current-ticket="renderedTicket" :bus="mkHeaderBus"
         @search-bar-text="onSearchBarText"/>
     <splitpanes horizontal class="default-theme top-split"
         @resized="onTopSplitResized"
@@ -47,6 +47,16 @@
         <div :class="'uh-background refs-filler'" />
       </pane>
     </splitpanes>
+    <!-- Index Status Bar at bottom -->
+    <div v-if="indexStatus" id="indexStatusBar" class="uh-background uh-color">
+      <span style="margin-right: 15px;">📊 Index Status:</span>
+      <span style="margin-right: 15px;">Last Update: <strong>{{ indexStatus.lastUpdateStr }}</strong></span>
+      <span style="margin-right: 15px;">Size: <strong>{{ formatSize(indexStatus.totalSizeMB) }}</strong></span>
+      <span style="margin-right: 15px;">Total Branches: <strong>{{ totalBranchCount }}</strong></span>
+      <span v-for="(repo, index) in indexStatus.repositories" :key="repo.name" style="margin-right: 15px;">
+        {{ formatRepoName(repo.name) }}: {{ repo.branches.length }}
+      </span>
+    </div>
   </div>
 </template>
 
@@ -217,6 +227,7 @@ import 'splitpanes/dist/splitpanes.css'
 
 import RH from './rest_helpers.js'
 import Proglang from './proglang.js';
+import Ticket from './ticket.js';
 import FileTree from './FileTree.vue'
 import { scrollToLastHilit } from './FileTree.vue'
 import References from './References.vue'
@@ -392,12 +403,13 @@ export default {
       syntaxMode: 'clike',
       //
       theme: 'zenburn',
-      keyMap: 'sublime',
+      keyMap: 'vim',
       contextLines: 0,
       //
       refTicket: null,
       refData: null,
       refsLoading: false,
+      indexStatus: null,
       collapseRefsOnNextRefClick: false,
       renderedTicket: null,
       searchBarText: "",
@@ -406,18 +418,58 @@ export default {
       // Saves vPaneSize when using top-bar search, to restore later.
       previousVPaneSize: null,
       preventFileTreeScroll: false,
+      //
+      selectedRepo: null,
+      selectedBranches: [],
+      availableBranches: [],
+      repoToBranches: {},
+      unfilteredNodes: null,
     }
   },
   mounted() {
     // Note: using this observer to adjust CodeMirror size, instead of
     // splitpane's native resize event, since latter only triggers when moving
     // the splitter manually, but not during initial render stabilization.
-    new ResizeObserver(() => {
-      // console.log("observer detected viewerPane resize");
-      this.setupCodeMirrorHeight();
-    }).observe(this.$refs.viewerPane.$el);
+    if (this.$refs.viewerPane && this.$refs.viewerPane.$el) {
+      new ResizeObserver(() => {
+        // console.log("observer detected viewerPane resize");
+        this.setupCodeMirrorHeight();
+      }).observe(this.$refs.viewerPane.$el);
+    }
+
+    // Fetch index status
+    this.fetchIndexStatus();
+    // Refresh every 5 minutes
+    setInterval(() => {
+      this.fetchIndexStatus();
+    }, 5 * 60 * 1000);
   },
   methods: {
+    async fetchIndexStatus() {
+      try {
+        const response = await axios.get('/api/index-status');
+        this.indexStatus = response.data;
+        console.log('Index status loaded:', this.indexStatus);
+      } catch (error) {
+        console.error('Failed to fetch index status:', error);
+      }
+    },
+    formatSize(sizeMB) {
+      if (sizeMB >= 1024) {
+        return (sizeMB / 1024).toFixed(2) + ' GB';
+      }
+      return sizeMB.toFixed(2) + ' MB';
+    },
+    formatRepoName(fullName) {
+      // Extract meaningful part from repo name
+      // e.g., "github.com/pytorch/pytorch" -> "pytorch/pytorch"
+      // e.g., "github.com/ROCm/pytorch" -> "ROCm/pytorch"
+      const parts = fullName.split('/');
+      if (parts.length >= 2) {
+        return parts.slice(-2).join('/');
+      }
+      return fullName;
+    },
     magicDebug(mx, f) {
       let maxtick = [mx];
       let g = () => {
@@ -457,6 +509,9 @@ export default {
       this.vPaneSize = ev[0].size;
     },
     setupCodeMirrorHeight() {
+      if (!this.$refs.viewerPane || !this.$refs.viewerPane.$el) {
+        return;
+      }
       const viewerH = this.$refs.viewerPane.$el.clientHeight;
       const preH = this.$refs.cmPre.clientHeight;
       const cmHeight = 1 + Math.floor(viewerH - preH);
@@ -593,6 +648,14 @@ export default {
       }
     },
     _startSearchXref(toSearch, mode, invertCaseBehavior) {
+      // Check if no branches are selected - don't execute search
+      if (this.selectedBranches.length === 0) {
+        console.log('No branches selected - clearing search results');
+        this.refData = null;
+        this.refsLoading = false;
+        return;
+      }
+
       // Trigger a selection-based search.
       // We interpret 'toSearch' casing in a Zoekt-compatible way:
       //
@@ -607,7 +670,9 @@ export default {
         let wasIgnoreCase = toSearch == lowered;
         zoektCase = wasIgnoreCase ? "yes" : "no";
       }
-      this.refData = null;
+      // Don't clear refData here - keep previous results visible while new search loads
+      // The "no branches selected" case is already handled above at line 611
+      // this.refData = null;  // REMOVED: This was clearing the references window during searches
       this.refsLoading = true;  // TODO counterize
 
       if (this.canceller) {
@@ -615,8 +680,71 @@ export default {
       }
       this.canceller = axios.CancelToken.source();
 
+      // Add branch and repo filtering to search query
+      let searchQuery = toSearch;
+
+      // Calculate total available branches
+      const allBranches = new Set();
+      for (const repo in this.repoToBranches) {
+        this.repoToBranches[repo].forEach(b => allBranches.add(b));
+      }
+      const totalBranches = allBranches.size;
+
+      // Only add filters if NOT all branches are selected
+      const allBranchesSelected = this.selectedBranches.length >= totalBranches;
+
+      if (this.selectedBranches && this.selectedBranches.length > 0 && !allBranchesSelected) {
+        const filters = [];
+
+        if (this.selectedRepo) {
+          // Single repo selected - check if all branches for this repo are selected
+          const repoBranches = this.repoToBranches[this.selectedRepo] || [];
+          const allRepoBranchesSelected = this.selectedBranches.filter(b =>
+            repoBranches.includes(b)
+          ).length >= repoBranches.length;
+
+          if (allRepoBranchesSelected) {
+            // All branches for this repo selected - just filter by repo
+            filters.push(`repo:${this.selectedRepo}`);
+          } else {
+            // Specific branches selected - use repo + branch filters with OR
+            filters.push(`repo:${this.selectedRepo}`);
+            const relevantBranches = this.selectedBranches.filter(b => repoBranches.includes(b));
+            const branchFilters = relevantBranches.map(b => `branch:${b}`);
+            if (branchFilters.length > 0) {
+              if (branchFilters.length === 1) {
+                // Single branch - no parentheses needed
+                filters.push(branchFilters[0]);
+              } else {
+                // Multiple branches - use parentheses with OR
+                filters.push(`(${branchFilters.join(' or ')})`);
+              }
+            }
+          }
+        } else {
+          // All repos selected - add branch filters with OR
+          const branchFilters = this.selectedBranches.map(b => `branch:${b}`);
+          if (branchFilters.length > 0) {
+            if (branchFilters.length === 1) {
+              // Single branch - no parentheses needed
+              filters.push(branchFilters[0]);
+            } else {
+              // Multiple branches - use parentheses with OR
+              filters.push(`(${branchFilters.join(' or ')})`);
+            }
+          }
+        }
+
+        if (filters.length > 0) {
+          searchQuery = `${filters.join(' ')} ${toSearch}`;
+          console.log('Search with filters:', searchQuery);
+        }
+      } else {
+        console.log('Search without filters (all branches selected):', searchQuery);
+      }
+
       axios.post('/api/search-xref', {
-          selection: toSearch,
+          selection: searchQuery,
           casing: zoektCase,
           mode: mode,
           file_ticket: this.renderedTicket,
@@ -742,6 +870,20 @@ export default {
     onContextLines (ls) {
       this.contextLines = ls;
     },
+    onRepoChange(repo) {
+      console.log('app onRepoChange', repo);
+      this.selectedRepo = repo;
+
+      // When repo changes, just filter the tree - don't navigate
+      // The file tree will be filtered by the watcher on selectedRepo in Header.vue
+      // which triggers branch selection updates
+    },
+    onBranchesChange (branches) {
+      console.log('app onBranchesChange', branches);
+      this.selectedBranches = branches;
+      // Filter file tree to show only selected branches
+      this._filterFileTreeByBranches();
+    },
     onRefClick (routeParams) {
       this.navigateToFileLineIfNeeded(routeParams);
       // Start restoring vpane, if needed.
@@ -809,10 +951,127 @@ export default {
         this._giveBackFocus();
       }));
     },
+    _ensureBranchInTicket(ticket) {
+      if (!ticket) {
+        return ticket;
+      }
+
+      // If ticket already has branch, return as-is
+      if (ticket.includes('@')) {
+        return ticket;
+      }
+
+      // Add repo if not present
+      let enhancedTicket = ticket;
+      if (this.selectedRepo && !ticket.includes(':')) {
+        // Ticket is just a filename, prepend repo
+        enhancedTicket = `${this.selectedRepo}:${ticket}`;
+      }
+
+      // Add branch if selected (use first selected branch for file viewing)
+      if (this.selectedBranches.length > 0) {
+        return Ticket.addBranchToFileTicket(enhancedTicket, this.selectedBranches[0]);
+      }
+
+      return enhancedTicket;
+    },
+    _extractAvailableBranchesFromTree(nodes) {
+      const repoToBranches = {};
+      console.log('_extractAvailableBranchesFromTree input:', nodes);
+
+      if (!nodes || !nodes.children) {
+        console.log('No nodes or children found');
+        return {};
+      }
+
+      console.log('Children count:', nodes.children.length);
+      for (const child of nodes.children) {
+        console.log('Processing child:', child);
+        // Use kytheUri instead of id
+        const uri = child.kytheUri || child.id;
+        console.log('URI:', uri);
+        if (uri && uri.includes('@')) {
+          // Parse "repo@branch" or "repo@branch:path"
+          const parts = uri.split('@');
+          const repo = parts[0];
+          const branch = parts[1].split(':')[0];
+          console.log('Extracted repo:', repo, 'branch:', branch);
+
+          if (!repoToBranches[repo]) {
+            repoToBranches[repo] = [];
+          }
+          if (!repoToBranches[repo].includes(branch)) {
+            repoToBranches[repo].push(branch);
+          }
+        }
+      }
+
+      // Sort branches within each repo
+      for (const repo in repoToBranches) {
+        repoToBranches[repo].sort();
+      }
+
+      return repoToBranches;
+    },
+    _filterFileTreeByBranches() {
+      if (!this.unfilteredNodes || !this.unfilteredNodes.children) {
+        return;
+      }
+
+      // If no branches selected, show everything
+      if (this.selectedBranches.length === 0) {
+        this.nodes = JSON.parse(JSON.stringify(this.unfilteredNodes));
+        return;
+      }
+
+      // Filter to show only selected repo+branch combinations
+      const filteredChildren = this.unfilteredNodes.children.filter(child => {
+        if (!child.kytheUri || !child.kytheUri.includes('@')) {
+          return true; // Keep non-branch nodes
+        }
+
+        // Extract repo and branch from kytheUri (format: "repo@branch")
+        const parts = child.kytheUri.split('@');
+        const repo = parts[0];
+        const branchPart = parts[1];
+        const branch = branchPart ? branchPart.split(':')[0] : null;
+
+        if (!branch) return false;
+
+        // If specific repo selected, only show that repo's branches
+        if (this.selectedRepo && repo !== this.selectedRepo) {
+          return false;
+        }
+
+        // Check if this branch is selected AND exists for this repo
+        if (!this.selectedBranches.includes(branch)) {
+          return false;
+        }
+
+        // Verify this branch actually exists for this repo
+        if (this.repoToBranches[repo] && this.repoToBranches[repo].includes(branch)) {
+          return true;
+        }
+
+        return false;
+      });
+
+      this.nodes = {
+        ...this.unfilteredNodes,
+        children: filteredChildren
+      };
+    },
     // Note: triggered by router changes via __render as wel.
     _loadSource (ticket, mbLineToFocus) {
-      console.log('_loadSource');
-      if (this.renderedTicket == ticket) {
+      console.log('_loadSource', ticket);
+      if (!ticket) {
+        console.log('_loadSource: no ticket, skipping');
+        return;
+      }
+      const enhancedTicket = this._ensureBranchInTicket(ticket);
+      console.log('enhanced ticket', enhancedTicket);
+
+      if (this.renderedTicket == enhancedTicket) {
         console.log('same-ticket');
         if (mbLineToFocus) {
           clearLineClasses(this.codemirror);
@@ -822,7 +1081,7 @@ export default {
       }
       console.log('load-source-start');
       axios.get('/api/source', {
-        params: { ticket }
+        params: { ticket: enhancedTicket }
       })
         .then(response => {
           this.setupCodeMirrorHeight();
@@ -879,10 +1138,12 @@ export default {
         this.setWindowTitle(lastPart + (routeParams.line ? (":" + routeParams.line) : "") + " (" + routeParams.ticket + ")");
       }
       const curParams = this.$router.currentRoute.params;
+      console.log('Navigation request - Current:', curParams, 'New:', routeParams);
       if (isEqual(curParams, routeParams)) {
         console.log('Preventing duplicate navigation');
         return;
       }
+      console.log('Navigating to:', routeParams);
       this.$router.push({
         name: 'file',
         params: routeParams,
@@ -924,6 +1185,21 @@ export default {
     },
   },
   computed: {
+    filteredBranches() {
+      if (!this.selectedRepo) {
+        return this.availableBranches;
+      }
+      return this.repoToBranches[this.selectedRepo] || [];
+    },
+    totalBranchCount() {
+      if (!this.indexStatus || !this.indexStatus.repositories) return 0;
+      // Count unique branches across all repositories
+      const allBranches = new Set();
+      this.indexStatus.repositories.forEach(repo => {
+        repo.branches.forEach(branch => allBranches.add(branch));
+      });
+      return allBranches.size;
+    },
     cmOptions () {
       return {
         mode: this.syntaxMode,
@@ -969,6 +1245,22 @@ export default {
       return 'cm-s-' + this.cmOptions.theme.split(' ')[0];
     },
   },
+  watch: {
+    selectedRepo(newRepo, oldRepo) {
+      // Auto-resubmit search when repo changes and search box is not empty
+      if (this.searchBarText && this.searchBarText.trim()) {
+        console.log('Repo changed, auto-resubmitting search');
+        this._startSearchXrefInMode("QueryFromSearchBar", "Raw", false);
+      }
+    },
+    selectedBranches(newBranches, oldBranches) {
+      // Auto-resubmit search when branches change and search box is not empty
+      if (this.searchBarText && this.searchBarText.trim()) {
+        console.log('Branches changed, auto-resubmitting search');
+        this._startSearchXrefInMode("QueryFromSearchBar", "Raw", false);
+      }
+    },
+  },
   beforeRouteUpdate(route, old, next) {
     //console.log('beforeRouteUpdate', route);
     this.__render(route);
@@ -985,7 +1277,25 @@ export default {
     this.canceller = null;
     axios.get('/api/filetree')
       .then(response => {
-        this.nodes = RH.fileTreeToNav(response.data);
+        // Store unfiltered nodes for branch filtering
+        this.unfilteredNodes = RH.fileTreeToNav(response.data);
+        this.nodes = JSON.parse(JSON.stringify(this.unfilteredNodes));
+
+        // Extract repo -> branches mapping
+        this.repoToBranches = this._extractAvailableBranchesFromTree(response.data);
+        console.log('repo to branches', this.repoToBranches);
+
+        // Update Header component with repo->branches map
+        this.$nextTick(() => {
+          console.log('$refs.header exists?', !!this.$refs.header);
+          console.log('updateAvailableBranches exists?', this.$refs.header && !!this.$refs.header.updateAvailableBranches);
+          if (this.$refs.header && this.$refs.header.updateAvailableBranches) {
+            console.log('Calling updateAvailableBranches with:', this.repoToBranches);
+            this.$refs.header.updateAvailableBranches(this.repoToBranches);
+          } else {
+            console.error('Cannot update header - ref not found or method missing');
+          }
+        });
       })
       .catch(err => console.log(err));
   },
@@ -1063,5 +1373,18 @@ export default {
 .fullHeight {
   height: 100%;
   overflow: auto; /* Would be nicer with unset, but then needs flex filler */
+}
+
+#indexStatusBar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 5px 15px;
+  font-size: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
 }
 </style>
