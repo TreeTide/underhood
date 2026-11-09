@@ -85,7 +85,7 @@ const config = {
     static: path.join(__dirname, 'static'),
     compress: true,
     port: 9000,
-    host: '0.0.0.0',
+    //host: '0.0.0.0',
     // To bind to 0.0.0.0, see
     // https://github.com/webpack/webpack-dev-server/issues/882.
     allowedHosts: 'all',
@@ -97,7 +97,7 @@ const config = {
     },
     proxy: [
       { context: ['/api'],
-        target: 'http://localhost:8081',
+        target: 'http://localhost:6080',
       },
     ],
   },

@@ -1,4 +1,4 @@
-FROM golang:1.23-alpine AS builder
+FROM golang:1.26-alpine AS builder
 
 WORKDIR /work
 
@@ -10,7 +10,7 @@ COPY ./cmd ./cmd
 COPY ./web ./web
 RUN go build -o /main cmd/zoekt-underhood/main.go
 
-FROM golang:1.23-alpine
+FROM golang:1.26-alpine
 COPY --from=builder /main /main
 
 EXPOSE 6080

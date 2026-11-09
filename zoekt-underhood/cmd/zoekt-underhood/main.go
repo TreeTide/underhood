@@ -18,7 +18,7 @@ import (
 	//"github.com/sourcegraph/zoekt"
 	//"github.com/sourcegraph/zoekt/build"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/sourcegraph/zoekt/shards"
+	"github.com/sourcegraph/zoekt/search"
 	"go.uber.org/automaxprocs/maxprocs"
 	"golang.org/x/net/trace"
 )
@@ -79,7 +79,7 @@ func main() {
 		log.Fatalf("%s is not a directory (for index)", *index)
 	}
 
-	searcher, err := shards.NewDirectorySearcher(*index)
+	searcher, err := search.NewDirectorySearcher(*index)
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -5,7 +5,7 @@ pkgs.mkShell {
   name = "build-shell";
 
   nativeBuildInputs = [
-    pkgs.go_1_23
+    pkgs.go_1_27
     pkgs.universal-ctags
   ];
 }

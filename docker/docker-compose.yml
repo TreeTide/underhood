@@ -1,5 +1,7 @@
 version: "3.3"
 
+name: zuh
+
 services:
   zoekt-underhood:
     image: ghcr.io/treetide/zoekt-underhood:local
@@ -18,6 +20,8 @@ services:
     build:
       context: ..
       dockerfile: docker/underhood-nginx/Dockerfile
+    environment:
+      ZOEKT_UNDERHOOD_HOST: zoekt-underhood
     restart: always
     ports:
-      - "8080:80"
+      - "8082:6090"

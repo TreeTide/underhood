@@ -1,0 +1,13 @@
+  server {
+      listen       6090;
+      server_name  localhost;
+
+      location / {
+          root   /usr/share/nginx/html;
+          index  index.html;
+      }
+
+      location /api/ {
+          proxy_pass   http://${ZOEKT_UNDERHOOD_HOST}:6080;  # zoekt-underhood port
+      }
+  }

@@ -1,5 +1,7 @@
 version: "3.3"
 
+name: zuhdemo
+
 services:
   bake-demo-index:
     image: ghcr.io/treetide/underhood-bake-demo-index:local
@@ -27,8 +29,10 @@ services:
       context: ..
       dockerfile: docker/underhood-nginx/Dockerfile
     restart: always
+    environment:
+      ZOEKT_UNDERHOOD_HOST: zoekt-underhood
     ports:
-      - "8082:80"
+      - "8082:6090"
 
 volumes:
   demoindex: {}
